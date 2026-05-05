@@ -532,7 +532,7 @@ function renderMonthCalendar() {
           <span class="calendar-sum">${formatCompactCurrency(expenseTotal)}</span>
         </button>
         <button class="calendar-layer schedule half" type="button" data-calendar-date="${dateKey}" data-calendar-kind="schedule">
-          <span class="calendar-schedule-label">${escapeHtml(getSchedulePreview(scheduleItemsForDay[0], true))}</span>
+          <span class="calendar-schedule-label">${scheduleItemsForDay.length}건</span>
         </button>
       `;
     } else if (hasExpense) {
@@ -544,7 +544,7 @@ function renderMonthCalendar() {
     } else if (hasSchedule) {
       body = `
         <button class="calendar-layer schedule full" type="button" data-calendar-date="${dateKey}" data-calendar-kind="schedule">
-          <span class="calendar-schedule-label">${escapeHtml(getSchedulePreview(scheduleItemsForDay[0], false))}</span>
+          <span class="calendar-schedule-label">${scheduleItemsForDay.length}건</span>
         </button>
       `;
     }
@@ -856,14 +856,6 @@ function shiftMonthKey(monthKey, offset) {
 function formatMonthNavLabel(monthKey) {
   const [year, month] = monthKey.split("-");
   return `${year}년 ${Number(month)}월`;
-}
-
-function getSchedulePreview(item, hasExpense) {
-  if (hasExpense) {
-    return item.note || item.place || "일정";
-  }
-
-  return item.note || item.place || "일정";
 }
 
 function isExpense(item) {
