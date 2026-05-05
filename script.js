@@ -1,6 +1,11 @@
 const STORAGE_KEY = "couple-expenses-v1";
 const SETTINGS_KEY = "couple-expenses-github-settings-v1";
 const SESSION_TOKEN_KEY = "couple-expenses-github-token-v1";
+const DEFAULT_GITHUB_SETTINGS = {
+  owner: "kim950106",
+  repo: "couple-expense-data",
+  path: "data/expenses.json",
+};
 
 const sampleExpenses = [
   {
@@ -379,9 +384,12 @@ function hydrateSettings() {
 
 function loadSettings() {
   try {
-    return JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}");
+    return {
+      ...DEFAULT_GITHUB_SETTINGS,
+      ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}"),
+    };
   } catch {
-    return {};
+    return { ...DEFAULT_GITHUB_SETTINGS };
   }
 }
 
