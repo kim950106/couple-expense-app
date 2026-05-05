@@ -6,6 +6,7 @@ const DEFAULT_GITHUB_SETTINGS = {
   repo: "couple-expense-data",
   path: "data/expenses.json",
 };
+const MONTHLY_LIMIT = 500000;
 
 const sampleExpenses = [
   {
@@ -13,8 +14,8 @@ const sampleExpenses = [
     date: "2026-05-05",
     merchant: "스타벅스 성수",
     amount: 6100,
-    person: "본인",
-    note: "카카오톡 텍스트 자동 인식",
+    person: "지은",
+    note: "문자 저장",
     rawText: "05/05 14:33 스타벅스 성수 6,100원 일시불",
     createdAt: "2026-05-05T14:33:00+09:00",
   },
@@ -23,8 +24,8 @@ const sampleExpenses = [
     date: "2026-05-05",
     merchant: "올리브영 강남",
     amount: 28300,
-    person: "여자친구",
-    note: "스크린샷 OCR로 저장",
+    person: "현철",
+    note: "사진 저장",
     rawText: "05/05 올리브영 강남 28,300원",
     createdAt: "2026-05-05T16:12:00+09:00",
   },
@@ -32,7 +33,6 @@ const sampleExpenses = [
 
 const state = {
   expenses: loadExpenses(),
-  filterPerson: "전체",
   currentMode: "paste",
 };
 
@@ -48,11 +48,6 @@ const elements = {
   meTotal: document.querySelector("#meTotal"),
   partnerTotal: document.querySelector("#partnerTotal"),
   heroSummary: document.querySelector("#heroSummary"),
-  dayStrip: document.querySelector("#dayStrip"),
-  expenseFeed: document.querySelector("#expenseFeed"),
-  emptyState: document.querySelector("#emptyState"),
-  personFilters: document.querySelector("#personFilters"),
-  syncBanner: document.querySelector("#syncBanner"),
   entrySheet: document.querySelector("#entrySheet"),
   settingsSheet: document.querySelector("#settingsSheet"),
   sheetEyebrow: document.querySelector("#sheetEyebrow"),
@@ -85,13 +80,10 @@ function bindEvents() {
   document.querySelector("#openManualButton").addEventListener("click", () => openEntrySheet("manual"));
   document.querySelector("#openAddButton").addEventListener("click", () => openEntrySheet("manual"));
   document.querySelector("#openSettingsButton").addEventListener("click", openSettingsSheet);
-  document.querySelector("#bottomSettingsButton").addEventListener("click", openSettingsSheet);
-  document.querySelector("#openSyncButton").addEventListener("click", openSettingsSheet);
   document.querySelector("#parseMessageButton").addEventListener("click", handleParseMessage);
   document.querySelector("#ocrButton").addEventListener("click", handleOcr);
   document.querySelector("#saveEntryButton").addEventListener("click", saveEntry);
   document.querySelector("#resetFormButton").addEventListener("click", resetEntryForm);
-  document.querySelector("#exportButton").addEventListener("click", exportJson);
   document.querySelector("#saveGithubButton").addEventListener("click", pushToGitHub);
   document.querySelector("#loadGithubButton").addEventListener("click", loadFromGitHub);
 
@@ -103,13 +95,6 @@ function bindEvents() {
     sheet.addEventListener("click", (event) => {
       if (event.target === sheet) closeSheet(sheet.id);
     });
-  });
-
-  elements.personFilters.addEventListener("click", (event) => {
-    const button = event.target.closest("[data-person]");
-    if (!button) return;
-    state.filterPerson = button.dataset.person;
-    render();
   });
 }
 
@@ -132,15 +117,11 @@ function persistExpenses() {
 function render() {
   renderHeader();
   renderTotals();
-  renderDays();
-  renderFeed();
-  renderFilters();
-  renderSyncBanner();
 }
 
 function renderHeader() {
   const now = new Date();
-  elements.monthLabel.textContent = `${now.getMonth() + 1}월 소비 리포트`;
+  elements.monthLabel.textContent = `${now.getMonth() + 1}월`;
 }
 
 function renderTotals() {
@@ -148,118 +129,18 @@ function renderTotals() {
   const totals = monthEntries.reduce(
     (acc, item) => {
       acc.total += item.amount;
-      if (item.person === "본인") acc.me += item.amount;
-      if (item.person === "여자친구") acc.partner += item.amount;
+      if (item.person === "지은") acc.me += item.amount;
+      if (item.person === "현철") acc.partner += item.amount;
       return acc;
     },
     { total: 0, me: 0, partner: 0 }
   );
+  const remain = Math.max(MONTHLY_LIMIT - totals.total, 0);
 
   elements.monthlyTotal.textContent = currency.format(totals.total);
   elements.meTotal.textContent = currency.format(totals.me);
   elements.partnerTotal.textContent = currency.format(totals.partner);
-  elements.heroSummary.textContent = `${monthEntries.length}건이 저장되어 있고, 가장 최근 입력은 ${lastSavedText()}`;
-}
-
-function renderDays() {
-  const groupedByDate = state.expenses
-    .filter((item) => isCurrentMonth(item.date))
-    .reduce((acc, item) => {
-      acc[item.date] ??= [];
-      acc[item.date].push(item);
-      return acc;
-    }, {});
-
-  const orderedDates = Object.keys(groupedByDate).sort((a, b) => (a < b ? 1 : -1));
-  elements.dayStrip.innerHTML = "";
-
-  if (!orderedDates.length) {
-    elements.dayStrip.innerHTML = `
-      <article class="day-card">
-        <div>
-          <div class="day-date">이번 달 내역 없음</div>
-          <div class="amount-caption">첫 소비를 저장해보세요</div>
-        </div>
-        <strong class="day-total">${currency.format(0)}</strong>
-      </article>
-    `;
-    return;
-  }
-
-  orderedDates.forEach((date) => {
-    const list = groupedByDate[date];
-    const total = list.reduce((sum, entry) => sum + entry.amount, 0);
-    const day = document.createElement("article");
-    day.className = "day-card";
-    day.innerHTML = `
-      <div>
-        <div class="day-date">${formatDate(date)}</div>
-        <div class="amount-caption">${list.length}건 저장됨</div>
-      </div>
-      <strong class="day-total">${currency.format(total)}</strong>
-    `;
-    elements.dayStrip.append(day);
-  });
-}
-
-function renderFeed() {
-  const filtered = state.expenses
-    .filter((item) => (state.filterPerson === "전체" ? true : item.person === state.filterPerson))
-    .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
-
-  elements.expenseFeed.innerHTML = "";
-  elements.emptyState.hidden = filtered.length > 0;
-
-  filtered.forEach((item) => {
-    const row = document.createElement("article");
-    row.className = "expense-row";
-    row.innerHTML = `
-      <div class="expense-meta">
-        <div class="merchant-mark">${escapeHtml(item.merchant).slice(0, 1) || "₩"}</div>
-        <div class="expense-main">
-          <strong>${escapeHtml(item.merchant)}</strong>
-          <p class="expense-note">${escapeHtml(item.note || "메모 없음")}</p>
-        </div>
-      </div>
-      <div class="expense-side">
-        <strong>${currency.format(Number(item.amount) || 0)}</strong>
-        <p class="amount-caption">${formatDate(item.date)}</p>
-        <span class="person-chip">${escapeHtml(item.person)}</span>
-      </div>
-    `;
-    elements.expenseFeed.append(row);
-  });
-}
-
-function renderFilters() {
-  elements.personFilters.querySelectorAll("[data-person]").forEach((button) => {
-    button.classList.toggle("active", button.dataset.person === state.filterPerson);
-  });
-}
-
-function renderSyncBanner() {
-  const settings = loadSettings();
-  const hasSessionToken = Boolean(sessionStorage.getItem(SESSION_TOKEN_KEY));
-  if (settings.owner && settings.repo && settings.path) {
-    elements.syncBanner.innerHTML = `
-      <div>
-        <strong>${escapeHtml(settings.owner)}/${escapeHtml(settings.repo)} 준비됨</strong>
-        <p>${escapeHtml(settings.path)} 파일에 ${hasSessionToken ? "암호화 동기화할 수 있어요." : "세션 토큰을 넣으면 바로 동기화할 수 있어요."}</p>
-      </div>
-      <button class="ghost-button" id="openSyncButtonInline">다시 설정</button>
-    `;
-    document.querySelector("#openSyncButtonInline").addEventListener("click", openSettingsSheet);
-    return;
-  }
-
-  elements.syncBanner.innerHTML = `
-    <div>
-      <strong>GitHub 동기화 준비 전</strong>
-      <p>지금은 이 기기 브라우저에 저장되고 있어요.</p>
-    </div>
-    <button class="ghost-button" id="openSyncButtonInline">동기화 설정</button>
-  `;
-  document.querySelector("#openSyncButtonInline").addEventListener("click", openSettingsSheet);
+  elements.heroSummary.textContent = `총 50만원 중 ${currency.format(remain)} 남음`;
 }
 
 function openEntrySheet(mode) {
@@ -290,7 +171,7 @@ function closeSheet(sheetId) {
 function resetEntryForm() {
   elements.rawMessage.value = "";
   elements.receiptImage.value = "";
-  elements.personInput.value = "본인";
+  elements.personInput.value = "지은";
   elements.merchantInput.value = "";
   elements.amountInput.value = "";
   elements.noteInput.value = "";
@@ -305,7 +186,7 @@ function setDefaultDate() {
 function handleParseMessage() {
   const parsed = parseExpenseMessage(elements.rawMessage.value);
   applyParsedData(parsed);
-  elements.noteInput.value = elements.noteInput.value || "카카오톡 메시지에서 자동 추출";
+  elements.noteInput.value = elements.noteInput.value || "문자 추출";
 }
 
 async function handleOcr() {
@@ -361,16 +242,6 @@ function saveEntry() {
   render();
   closeSheet("entrySheet");
   resetEntryForm();
-}
-
-function exportJson() {
-  const blob = new Blob([JSON.stringify(state.expenses, null, 2)], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = `expenses-${new Date().toISOString().slice(0, 10)}.json`;
-  anchor.click();
-  URL.revokeObjectURL(url);
 }
 
 function hydrateSettings() {
@@ -596,7 +467,7 @@ function parseExpenseMessage(rawText) {
     parseDate(text, /(\d{1,2})월\s*(\d{1,2})일/) ||
     new Date().toISOString().slice(0, 10);
 
-  const person = /여자친구|여친|wife|partner/i.test(text) ? "여자친구" : "본인";
+  const person = /현철/i.test(text) ? "현철" : "지은";
   const merchant = extractMerchant(lines, text, amountMatch?.[0]);
 
   return {
@@ -604,7 +475,7 @@ function parseExpenseMessage(rawText) {
     date,
     merchant,
     amount,
-    note: /일시불/.test(text) ? "일시불 결제" : "",
+    note: /일시불/.test(text) ? "일시불" : "",
   };
 }
 
@@ -673,21 +544,6 @@ function isCurrentMonth(dateString) {
   const today = new Date();
   const date = new Date(`${dateString}T00:00:00`);
   return date.getFullYear() === today.getFullYear() && date.getMonth() === today.getMonth();
-}
-
-function lastSavedText() {
-  if (!state.expenses.length) return "아직 없어요.";
-  const latest = [...state.expenses].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))[0];
-  return `${latest.person} · ${latest.merchant}`;
-}
-
-function formatDate(dateString) {
-  const date = new Date(`${dateString}T00:00:00`);
-  return new Intl.DateTimeFormat("ko-KR", {
-    month: "long",
-    day: "numeric",
-    weekday: "short",
-  }).format(date);
 }
 
 function escapeHtml(value) {
