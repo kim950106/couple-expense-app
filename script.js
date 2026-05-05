@@ -308,6 +308,9 @@ function getEntrySheetConfig(mode) {
 
 function openMonthSheet(mode = state.monthViewMode) {
   state.monthViewMode = mode;
+  if (!state.selectedMonthKey) {
+    state.selectedMonthKey = getCurrentMonthKey();
+  }
   renderMonthSheetContent();
   elements.monthSheet.hidden = false;
 }
@@ -521,6 +524,7 @@ function renderMonthCalendar() {
       <div class="calendar-grid">
         ${cells.join("")}
       </div>
+      ${monthItems.length ? "" : '<div class="month-meta calendar-empty-copy">이 달에는 저장된 내역이 없어요.</div>'}
     </article>
   `;
 }
