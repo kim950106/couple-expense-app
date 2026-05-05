@@ -646,15 +646,15 @@ textarea {
   border-radius: 16px;
   background: rgba(148, 163, 184, 0.08);
   display: grid;
-  align-content: start;
-  gap: 4px;
+  grid-template-rows: auto 1fr;
+  gap: 5px;
   text-align: left;
   position: relative;
   overflow: hidden;
 }
 
 .calendar-cell.split {
-  grid-template-rows: auto 1fr 1fr;
+  grid-template-rows: auto 1fr;
 }
 
 .calendar-cell.expense-only,
@@ -667,7 +667,7 @@ textarea {
 }
 
 .calendar-cell.active {
-  background: rgba(148, 163, 184, 0.04);
+  background: rgba(255, 255, 255, 0.14);
 }
 
 .calendar-day {
@@ -675,17 +675,31 @@ textarea {
   font-weight: 800;
   position: relative;
   z-index: 2;
+  padding-left: 2px;
 }
 
 .calendar-sum {
   font-size: 0.72rem;
   font-weight: 700;
-  color: var(--brand-deep);
+  color: #fff;
   white-space: nowrap;
 }
 
-.calendar-layer {
+.calendar-body {
+  width: 100%;
+  min-height: 48px;
   border-radius: 12px;
+  overflow: hidden;
+  display: grid;
+}
+
+.calendar-cell.split .calendar-body {
+  grid-template-rows: 1fr 1fr;
+  gap: 2px;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.calendar-layer {
   padding: 6px 5px;
   display: grid;
   align-content: center;
@@ -694,6 +708,8 @@ textarea {
   color: #fff;
   width: 100%;
   min-height: 100%;
+  appearance: none;
+  background-clip: padding-box;
 }
 
 .calendar-layer.expense {
@@ -705,7 +721,7 @@ textarea {
 }
 
 .calendar-layer.half {
-  border-radius: 10px;
+  border-radius: 0;
 }
 
 .calendar-layer.full {

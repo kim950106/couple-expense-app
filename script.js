@@ -554,7 +554,9 @@ function renderMonthCalendar() {
     cells.push(`
       <div class="calendar-cell${stateClass}${hasExpense || hasSchedule ? " active" : ""}">
         <div class="calendar-day">${day}</div>
-        ${body}
+        <div class="calendar-body">
+          ${body}
+        </div>
       </div>
     `);
   }
