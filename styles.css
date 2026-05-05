@@ -650,10 +650,16 @@ textarea {
   gap: 4px;
   text-align: left;
   position: relative;
+  overflow: hidden;
 }
 
 .calendar-cell.split {
   grid-template-rows: auto 1fr 1fr;
+}
+
+.calendar-cell.expense-only,
+.calendar-cell.schedule-only {
+  grid-template-rows: auto 1fr;
 }
 
 .calendar-cell.empty {
@@ -683,9 +689,11 @@ textarea {
   padding: 6px 5px;
   display: grid;
   align-content: center;
-  justify-items: start;
-  min-height: 44px;
+  justify-items: center;
+  text-align: center;
   color: #fff;
+  width: 100%;
+  min-height: 100%;
 }
 
 .calendar-layer.expense {
@@ -697,8 +705,11 @@ textarea {
 }
 
 .calendar-layer.half {
-  min-height: 100%;
   border-radius: 10px;
+}
+
+.calendar-layer.full {
+  border-radius: 12px;
 }
 
 .calendar-schedule-label {

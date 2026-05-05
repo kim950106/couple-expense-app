@@ -525,25 +525,36 @@ function renderMonthCalendar() {
     const expenseTotal = expenseItemsForDay.reduce((sum, item) => sum + item.amount, 0);
     const hasExpense = expenseItemsForDay.length > 0;
     const hasSchedule = scheduleItemsForDay.length > 0;
-    const splitClass = hasExpense && hasSchedule ? " split" : "";
+    const stateClass = hasExpense && hasSchedule ? " split" : hasExpense ? " expense-only" : hasSchedule ? " schedule-only" : "";
+    let body = "";
+
+    if (hasExpense && hasSchedule) {
+      body = `
+        <button class="calendar-layer expense half" type="button" data-calendar-date="${dateKey}" data-calendar-kind="expense">
+          <span class="calendar-sum">${formatCompactCurrency(expenseTotal)}</span>
+        </button>
+        <button class="calendar-layer schedule half" type="button" data-calendar-date="${dateKey}" data-calendar-kind="schedule">
+          <span class="calendar-schedule-label">${escapeHtml(getSchedulePreview(scheduleItemsForDay[0], true))}</span>
+        </button>
+      `;
+    } else if (hasExpense) {
+      body = `
+        <button class="calendar-layer expense full" type="button" data-calendar-date="${dateKey}" data-calendar-kind="expense">
+          <span class="calendar-sum">${formatCompactCurrency(expenseTotal)}</span>
+        </button>
+      `;
+    } else if (hasSchedule) {
+      body = `
+        <button class="calendar-layer schedule full" type="button" data-calendar-date="${dateKey}" data-calendar-kind="schedule">
+          <span class="calendar-schedule-label">${escapeHtml(getSchedulePreview(scheduleItemsForDay[0], false))}</span>
+        </button>
+      `;
+    }
 
     cells.push(`
-      <div class="calendar-cell${splitClass}${hasExpense || hasSchedule ? " active" : ""}">
+      <div class="calendar-cell${stateClass}${hasExpense || hasSchedule ? " active" : ""}">
         <div class="calendar-day">${day}</div>
-        ${
-          hasExpense
-            ? `<button class="calendar-layer expense${hasSchedule ? " half" : ""}" type="button" data-calendar-date="${dateKey}" data-calendar-kind="expense">
-                <span class="calendar-sum">${formatCompactCurrency(expenseTotal)}</span>
-              </button>`
-            : ""
-        }
-        ${
-          hasSchedule
-            ? `<button class="calendar-layer schedule${hasExpense ? " half" : ""}" type="button" data-calendar-date="${dateKey}" data-calendar-kind="schedule">
-                <span class="calendar-schedule-label">${escapeHtml(getSchedulePreview(scheduleItemsForDay[0], hasExpense))}</span>
-              </button>`
-            : ""
-        }
+        ${body}
       </div>
     `);
   }
