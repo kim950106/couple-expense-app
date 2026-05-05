@@ -9,6 +9,7 @@ const DEFAULT_GITHUB_SETTINGS = {
 const MONTHLY_LIMIT = 500000;
 const RESET_DATA_VERSION = "empty-v1";
 const APP_PIN = "0311";
+const SETTINGS_ACCESS_KEY = "K7m2Qx9Vn4Lp8Rz3";
 
 const state = {
   expenses: loadExpenses(),
@@ -36,8 +37,12 @@ const elements = {
   heroSummary: document.querySelector("#heroSummary"),
   periodCopy: document.querySelector("#periodCopy"),
   entrySheet: document.querySelector("#entrySheet"),
-  monthSheet: document.querySelector("#monthSheet"),
+  settingsAccessSheet: document.querySelector("#settingsAccessSheet"),
   settingsSheet: document.querySelector("#settingsSheet"),
+  monthSheet: document.querySelector("#monthSheet"),
+  settingsAccessInput: document.querySelector("#settingsAccessInput"),
+  settingsAccessError: document.querySelector("#settingsAccessError"),
+  openSettingsConfirmButton: document.querySelector("#openSettingsConfirmButton"),
   sheetEyebrow: document.querySelector("#sheetEyebrow"),
   sheetTitle: document.querySelector("#sheetTitle"),
   sheetCopy: document.querySelector("#sheetCopy"),
@@ -77,7 +82,14 @@ function bindEvents() {
   document.querySelector("#openManualButton").addEventListener("click", () => openEntrySheet("manual"));
   document.querySelector("#openAddButton").addEventListener("click", () => openEntrySheet("manual"));
   document.querySelector("#openMonthSheetButton").addEventListener("click", openMonthSheet);
-  document.querySelector("#openSettingsButton").addEventListener("click", openSettingsSheet);
+  document.querySelector("#openSettingsButton").addEventListener("click", openSettingsAccessSheet);
+  elements.openSettingsConfirmButton.addEventListener("click", handleSettingsAccess);
+  elements.settingsAccessInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      handleSettingsAccess();
+    }
+  });
   document.querySelector("#parseMessageButton").addEventListener("click", handleParseMessage);
   document.querySelector("#ocrButton").addEventListener("click", handleOcr);
   document.querySelector("#saveEntryButton").addEventListener("click", saveEntry);
@@ -89,7 +101,7 @@ function bindEvents() {
     button.addEventListener("click", () => closeSheet(button.dataset.closeSheet));
   });
 
-  [elements.entrySheet, elements.monthSheet, elements.settingsSheet].forEach((sheet) => {
+  [elements.entrySheet, elements.settingsAccessSheet, elements.settingsSheet, elements.monthSheet].forEach((sheet) => {
     sheet.addEventListener("click", (event) => {
       if (event.target === sheet) closeSheet(sheet.id);
     });
@@ -134,6 +146,24 @@ function renderPinDots() {
   dots.forEach((dot, index) => {
     dot.classList.toggle("filled", index < state.pinValue.length);
   });
+}
+
+function openSettingsAccessSheet() {
+  elements.settingsAccessInput.value = "";
+  elements.settingsAccessError.hidden = true;
+  elements.settingsAccessSheet.hidden = false;
+}
+
+function handleSettingsAccess() {
+  if (elements.settingsAccessInput.value.trim() !== SETTINGS_ACCESS_KEY) {
+    elements.settingsAccessError.hidden = false;
+    elements.settingsAccessInput.value = "";
+    return;
+  }
+
+  elements.settingsAccessError.hidden = true;
+  closeSheet("settingsAccessSheet");
+  openSettingsSheet();
 }
 
 function loadExpenses() {
@@ -637,9 +667,7 @@ function parseSamsungCardMessage(lines, text) {
   const amount = amountMatch ? Number(amountMatch[1].replaceAll(",", "")) : "";
 
   const date = parseDate(merchantLine || text, /(\d{1,2})[\/.-]\s*(\d{1,2})/) || new Date().toISOString().slice(0, 10);
-  const merchant = merchantLine
-    .replace(/^\d{1,2}\/\d{1,2}\s+\d{1,2}:\d{2}\s*/, "")
-    .trim() || "가맹점 미확인";
+  const merchant = merchantLine.replace(/^\d{1,2}\/\d{1,2}\s+\d{1,2}:\d{2}\s*/, "").trim() || "가맹점 미확인";
 
   return {
     person: detectPerson(ownerLine || text),
@@ -672,25 +700,8 @@ function parseDate(text, pattern) {
 }
 
 function extractMerchant(lines, text, amountToken) {
-  const ignoreWords = [
-    "카드",
-    "승인",
-    "결제",
-    "사용",
-    "일시불",
-    "할부",
-    "누적",
-    "잔액",
-    "원",
-    "krw",
-    "카카오",
-    "알림",
-  ];
-
-  const candidates = [
-    ...lines,
-    ...text.split(/ {2,}/),
-  ].map((value) => value.trim());
+  const ignoreWords = ["카드", "승인", "결제", "사용", "일시불", "할부", "누적", "잔액", "원", "krw", "카카오", "알림"];
+  const candidates = [...lines, ...text.split(/ {2,}/)].map((value) => value.trim());
 
   for (const candidate of candidates) {
     if (!candidate) continue;

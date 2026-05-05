@@ -178,6 +178,30 @@
       </div>
     </section>
 
+    <section class="sheet-backdrop" id="settingsAccessSheet" hidden>
+      <div class="sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-head">
+          <div>
+            <p class="eyebrow">공유 설정</p>
+            <h3>공용키 확인</h3>
+            <p class="sheet-copy">공용키를 넣어야 설정에 들어갈 수 있어요.</p>
+          </div>
+          <button class="icon-button small" data-close-sheet="settingsAccessSheet" aria-label="닫기">×</button>
+        </div>
+        <div class="sheet-body">
+          <label class="field-block">
+            <span>공용키</span>
+            <input id="settingsAccessInput" type="password" placeholder="공용키 입력" />
+          </label>
+          <p class="helper-text lock-error" id="settingsAccessError" hidden>공용키가 맞지 않아요.</p>
+          <div class="sheet-actions">
+            <button class="primary-button" id="openSettingsConfirmButton" type="button">설정 열기</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section class="sheet-backdrop" id="settingsSheet" hidden>
       <div class="sheet">
         <div class="sheet-handle"></div>
