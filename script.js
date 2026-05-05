@@ -114,10 +114,13 @@ function handlePinKey(value) {
   state.pinValue += value;
   elements.pinError.hidden = true;
   renderPinDots();
+  if (state.pinValue.length === 4) {
+    handlePinSubmit(new Event("submit"));
+  }
 }
 
 function clearPinValue() {
-  state.pinValue = "";
+  state.pinValue = state.pinValue.slice(0, -1);
   renderPinDots();
 }
 
