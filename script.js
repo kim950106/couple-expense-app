@@ -55,7 +55,9 @@ const elements = {
   sheetTitle: document.querySelector("#sheetTitle"),
   sheetCopy: document.querySelector("#sheetCopy"),
   rawTextField: document.querySelector("#rawTextField"),
+  rawTextLabel: document.querySelector("#rawTextLabel"),
   imageField: document.querySelector("#imageField"),
+  imageFieldLabel: document.querySelector("#imageFieldLabel"),
   rawMessage: document.querySelector("#rawMessage"),
   receiptImage: document.querySelector("#receiptImage"),
   ocrStatus: document.querySelector("#ocrStatus"),
@@ -154,9 +156,14 @@ function openEntrySheet(mode) {
   elements.sheetEyebrow.textContent = config.eyebrow;
   elements.sheetTitle.textContent = config.title;
   elements.sheetCopy.textContent = config.copy;
-  elements.rawTextField.hidden = mode === "manual";
+  elements.rawTextField.hidden = mode !== "paste";
   elements.imageField.hidden = mode !== "image";
   elements.rawMessage.placeholder = config.placeholder;
+  elements.rawTextLabel.textContent = config.rawTextLabel || "카카오톡 메시지";
+  elements.imageFieldLabel.textContent = config.imageFieldLabel || "영수증 사진";
+  document.querySelector("#parseMessageButton").textContent = config.parseButtonLabel || "입력하기";
+  document.querySelector("#ocrButton").textContent = config.imageButtonLabel || "영수증 입력";
+  elements.ocrStatus.textContent = config.imageHelperText || "영수증 내용이 자동으로 채워져요.";
 
   if (mode === "manual") {
     elements.rawMessage.value = "";
@@ -170,17 +177,22 @@ function getEntrySheetConfig(mode) {
     return {
       eyebrow: "문자 저장",
       title: "문자 붙여넣기",
-      copy: "카카오톡 문자에서 바로 채워요.",
+      copy: "삼성카드 문자만 붙여넣어요.",
       placeholder: "예: 삼성9161승인 김*철\n5,900원 일시불\n05/05 00:13 씨유(CU)대방디엠",
+      rawTextLabel: "삼성카드 메시지",
+      parseButtonLabel: "문자 입력",
     };
   }
 
   if (mode === "image") {
     return {
-      eyebrow: "사진 저장",
-      title: "사진 입력",
-      copy: "스크린샷 문자만 읽어와요.",
-      placeholder: "사진에서 읽은 문자가 여기에 보여요.",
+      eyebrow: "영수증 저장",
+      title: "영수증 입력",
+      copy: "영수증 내용만 채워요.",
+      placeholder: "",
+      imageFieldLabel: "영수증 사진",
+      imageButtonLabel: "영수증 입력",
+      imageHelperText: "영수증 내용이 자동으로 채워져요.",
     };
   }
 
@@ -213,7 +225,7 @@ function resetEntryForm() {
   elements.merchantInput.value = "";
   elements.amountInput.value = "";
   elements.noteInput.value = "";
-  elements.ocrStatus.textContent = "이미지 OCR은 기기 성능에 따라 조금 시간이 걸릴 수 있어요.";
+  elements.ocrStatus.textContent = "영수증 내용이 자동으로 채워져요.";
   setDefaultDate();
 }
 
@@ -230,20 +242,20 @@ function handleParseMessage() {
 async function handleOcr() {
   const file = elements.receiptImage.files[0];
   if (!file) {
-    elements.ocrStatus.textContent = "먼저 스크린샷 이미지를 선택해 주세요.";
+    elements.ocrStatus.textContent = "먼저 영수증 사진을 넣어 주세요.";
     return;
   }
 
-  elements.ocrStatus.textContent = "문자를 읽는 중이에요...";
+  elements.ocrStatus.textContent = "영수증 내용을 넣는 중이에요.";
 
   try {
     const result = await Tesseract.recognize(file, "kor+eng");
     const text = result.data.text.trim();
     elements.rawMessage.value = text;
-    elements.ocrStatus.textContent = text ? "문자 인식이 끝났어요. 아래 내용으로 자동 분석해요." : "문자를 찾지 못했어요.";
+    elements.ocrStatus.textContent = text ? "영수증 내용이 채워졌어요." : "영수증 내용을 찾지 못했어요.";
     if (text) handleParseMessage();
   } catch (error) {
-    elements.ocrStatus.textContent = "OCR 중 오류가 발생했어요. 텍스트 붙여넣기로 다시 시도해 주세요.";
+    elements.ocrStatus.textContent = "영수증 입력이 안 됐어요. 다시 시도해 주세요.";
     console.error(error);
   }
 }
