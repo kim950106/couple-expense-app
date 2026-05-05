@@ -20,6 +20,8 @@ const state = {
   autoRefreshTimer: null,
   monthViewMode: "list",
   selectedMonthKey: getCurrentMonthKey(),
+  dayDetailDate: "",
+  dayDetailKind: "expense",
 };
 
 const currency = new Intl.NumberFormat("ko-KR", {
@@ -538,7 +540,7 @@ function renderMonthCalendar() {
         ${
           hasSchedule
             ? `<button class="calendar-layer schedule${hasExpense ? " half" : ""}" type="button" data-calendar-date="${dateKey}" data-calendar-kind="schedule">
-                <span class="calendar-schedule-label">${hasExpense ? "일정" : scheduleItemsForDay[0].place}</span>
+                <span class="calendar-schedule-label">${escapeHtml(getSchedulePreview(scheduleItemsForDay[0], hasExpense))}</span>
               </button>`
             : ""
         }
@@ -573,6 +575,8 @@ function handleMonthCalendarClick(event) {
 }
 
 function openDayDetailSheet(dateKey, kind = "expense") {
+  state.dayDetailDate = dateKey;
+  state.dayDetailKind = kind;
   const items = state.expenses
     .filter((item) => (kind === "schedule" ? isScheduleOnDate(item, dateKey) : isExpense(item) && item.date === dateKey))
     .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
@@ -650,14 +654,17 @@ function removeExpenseById(expenseId) {
     return;
   }
 
-  const confirmed = window.confirm(`${target.merchant} ${currency.format(target.amount)} 내역을 취소할까요?`);
+  const itemLabel = isSchedule(target)
+    ? `${target.place} 일정`
+    : `${target.merchant} ${currency.format(target.amount)}`;
+  const confirmed = window.confirm(`${itemLabel} 내역을 취소할까요?`);
   if (!confirmed) return;
 
   state.expenses = state.expenses.filter((item) => item.id !== expenseId);
   persistExpenses();
   render();
-  if (!elements.dayDetailSheet.hidden && target?.date) {
-    openDayDetailSheet(target.date);
+  if (!elements.dayDetailSheet.hidden && state.dayDetailDate) {
+    openDayDetailSheet(state.dayDetailDate, state.dayDetailKind);
   }
   alert("내역을 취소했어요. GitHub에 저장한 내용이면 다시 저장해야 반영돼요.");
 }
@@ -838,6 +845,14 @@ function shiftMonthKey(monthKey, offset) {
 function formatMonthNavLabel(monthKey) {
   const [year, month] = monthKey.split("-");
   return `${year}년 ${Number(month)}월`;
+}
+
+function getSchedulePreview(item, hasExpense) {
+  if (hasExpense) {
+    return item.note || item.place || "일정";
+  }
+
+  return item.note || item.place || "일정";
 }
 
 function isExpense(item) {
