@@ -19,6 +19,7 @@ const state = {
   pinValue: "",
   autoRefreshTimer: null,
   monthViewMode: "list",
+  selectedMonthKey: getCurrentMonthKey(),
 };
 
 const currency = new Intl.NumberFormat("ko-KR", {
@@ -48,6 +49,9 @@ const elements = {
   dayDetailSheet: document.querySelector("#dayDetailSheet"),
   monthListViewButton: document.querySelector("#monthListViewButton"),
   monthCalendarViewButton: document.querySelector("#monthCalendarViewButton"),
+  prevMonthButton: document.querySelector("#prevMonthButton"),
+  nextMonthButton: document.querySelector("#nextMonthButton"),
+  monthNavLabel: document.querySelector("#monthNavLabel"),
   settingsAccessInput: document.querySelector("#settingsAccessInput"),
   settingsAccessError: document.querySelector("#settingsAccessError"),
   openSettingsConfirmButton: document.querySelector("#openSettingsConfirmButton"),
@@ -101,6 +105,8 @@ function bindEvents() {
   elements.pushNowButton.addEventListener("click", pushToGitHub);
   elements.monthListViewButton.addEventListener("click", () => setMonthViewMode("list"));
   elements.monthCalendarViewButton.addEventListener("click", () => setMonthViewMode("calendar"));
+  elements.prevMonthButton.addEventListener("click", () => moveSelectedMonth(-1));
+  elements.nextMonthButton.addEventListener("click", () => moveSelectedMonth(1));
   elements.refreshNowButton.addEventListener("click", refreshNow);
   document.querySelector("#openSettingsButton").addEventListener("click", openSettingsAccessSheet);
   elements.openSettingsConfirmButton.addEventListener("click", handleSettingsAccess);
@@ -313,6 +319,7 @@ function setMonthViewMode(mode) {
 
 function renderMonthSheetContent() {
   renderMonthViewSwitch();
+  renderMonthNav();
   renderMonthList();
   renderMonthCalendar();
 }
@@ -323,6 +330,15 @@ function renderMonthViewSwitch() {
   elements.monthCalendar.hidden = isList;
   elements.monthListViewButton.classList.toggle("active", isList);
   elements.monthCalendarViewButton.classList.toggle("active", !isList);
+}
+
+function renderMonthNav() {
+  elements.monthNavLabel.textContent = formatMonthNavLabel(state.selectedMonthKey);
+}
+
+function moveSelectedMonth(offset) {
+  state.selectedMonthKey = shiftMonthKey(state.selectedMonthKey, offset);
+  renderMonthSheetContent();
 }
 
 function openSettingsSheet() {
@@ -411,65 +427,59 @@ function saveEntry() {
 }
 
 function renderMonthList() {
-  const grouped = state.expenses.reduce((acc, item) => {
-    const key = item.date.slice(0, 7);
-    acc[key] ??= [];
-    acc[key].push(item);
-    return acc;
-  }, {});
-
-  const months = Object.keys(grouped).sort((a, b) => (a < b ? 1 : -1));
+  const monthKey = state.selectedMonthKey;
+  const items = state.expenses
+    .filter((item) => item.date.startsWith(monthKey))
+    .sort((a, b) => (a.date < b.date ? 1 : -1) || (a.createdAt < b.createdAt ? 1 : -1));
   elements.monthList.innerHTML = "";
 
-  if (!months.length) {
+  if (!items.length) {
     elements.monthList.innerHTML = `
       <article class="month-card">
         <div class="month-head">
-          <strong class="month-title">내역 없음</strong>
+          <strong class="month-title">${formatMonthLabel(monthKey)}</strong>
           <strong class="month-total">${currency.format(0)}</strong>
         </div>
+        <div class="month-meta">내역 없음</div>
       </article>
     `;
     return;
   }
 
-  months.forEach((monthKey) => {
-    const items = grouped[monthKey].sort((a, b) => (a.date < b.date ? 1 : -1));
-    const total = items.reduce((sum, item) => sum + item.amount, 0);
-    const card = document.createElement("article");
-    card.className = "month-card";
-    card.innerHTML = `
-      <div class="month-head">
-        <strong class="month-title">${formatMonthLabel(monthKey)}</strong>
-        <strong class="month-total">${currency.format(total)}</strong>
-      </div>
-      ${items
-        .map(
-          (item) => `
-            <div class="month-item">
-              <div>
-                <div class="month-store">${escapeHtml(item.merchant)}</div>
-                <div class="month-meta">${escapeHtml(item.person)} · ${formatDayLabel(item.date)}</div>
-              </div>
-              <div class="month-item-side">
-                <div class="month-total">${currency.format(item.amount)}</div>
-                <div class="month-amount">${escapeHtml(item.note || "")}</div>
-                <button class="month-cancel" type="button" data-expense-id="${escapeHtml(item.id)}">취소</button>
-              </div>
+  const total = items.reduce((sum, item) => sum + item.amount, 0);
+  const card = document.createElement("article");
+  card.className = "month-card";
+  card.innerHTML = `
+    <div class="month-head">
+      <strong class="month-title">${formatMonthLabel(monthKey)}</strong>
+      <strong class="month-total">${currency.format(total)}</strong>
+    </div>
+    ${items
+      .map(
+        (item) => `
+          <div class="month-item">
+            <div>
+              <div class="month-store">${escapeHtml(item.merchant)}</div>
+              <div class="month-meta">${escapeHtml(item.person)} · ${formatDayLabel(item.date)}</div>
             </div>
-          `
-        )
-        .join("")}
-    `;
-    elements.monthList.append(card);
-  });
+            <div class="month-item-side">
+              <div class="month-total">${currency.format(item.amount)}</div>
+              <div class="month-amount">${escapeHtml(item.note || "")}</div>
+              <button class="month-cancel" type="button" data-expense-id="${escapeHtml(item.id)}">취소</button>
+            </div>
+          </div>
+        `
+      )
+      .join("")}
+  `;
+  elements.monthList.append(card);
 }
 
 function renderMonthCalendar() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth();
-  const monthKey = `${year}-${String(month + 1).padStart(2, "0")}`;
+  const [yearText, monthText] = state.selectedMonthKey.split("-");
+  const year = Number(yearText);
+  const month = Number(monthText) - 1;
+  const monthKey = state.selectedMonthKey;
   const monthItems = state.expenses.filter((item) => item.date.startsWith(monthKey));
   const byDate = monthItems.reduce((acc, item) => {
     acc[item.date] ??= [];
@@ -766,6 +776,22 @@ function formatSyncTime(date) {
 function formatDateLabel(dateString) {
   const [year, month, day] = dateString.split("-");
   return `${year}.${month}.${day}`;
+}
+
+function getCurrentMonthKey() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function shiftMonthKey(monthKey, offset) {
+  const [yearText, monthText] = monthKey.split("-");
+  const moved = new Date(Number(yearText), Number(monthText) - 1 + offset, 1);
+  return `${moved.getFullYear()}-${String(moved.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function formatMonthNavLabel(monthKey) {
+  const [year, month] = monthKey.split("-");
+  return `${year}년 ${Number(month)}월`;
 }
 
 function formatCompactCurrency(value) {

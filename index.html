@@ -57,6 +57,7 @@
 
       <main class="content">
         <section class="hero-card">
+          <button class="hero-upload" id="pushNowButton" type="button" aria-label="올리기">↥</button>
           <div class="hero-copy">
             <p class="label">이번달 총합</p>
             <strong id="monthlyTotal">₩0</strong>
@@ -68,9 +69,8 @@
             <span>현철 <b id="partnerTotal">₩0</b></span>
           </div>
           <div class="hero-actions">
-            <button class="hero-link" id="openMonthListButton" type="button">월별 리스트</button>
-            <button class="hero-link" id="openMonthCalendarButton" type="button">월별 달력</button>
-            <button class="hero-link" id="pushNowButton" type="button">올리기</button>
+            <button class="hero-link" id="openMonthListButton" type="button">리스트</button>
+            <button class="hero-link" id="openMonthCalendarButton" type="button">달력</button>
             <button class="hero-link ghost" id="refreshNowButton" type="button">새로고침</button>
           </div>
           <p class="sync-copy" id="syncCopy">수동 새로고침 가능</p>
@@ -274,6 +274,11 @@
           <div class="view-switch" id="monthViewSwitch">
             <button class="view-chip active" id="monthListViewButton" type="button">리스트</button>
             <button class="view-chip" id="monthCalendarViewButton" type="button">달력</button>
+          </div>
+          <div class="month-nav">
+            <button class="month-nav-button" id="prevMonthButton" type="button">‹</button>
+            <strong class="month-nav-label" id="monthNavLabel">2026년 5월</strong>
+            <button class="month-nav-button" id="nextMonthButton" type="button">›</button>
           </div>
           <div class="month-list" id="monthList"></div>
           <div class="month-calendar" id="monthCalendar" hidden></div>
