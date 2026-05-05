@@ -18,6 +18,7 @@ const state = {
   currentMode: "paste",
   pinValue: "",
   autoRefreshTimer: null,
+  monthViewMode: "list",
 };
 
 const currency = new Intl.NumberFormat("ko-KR", {
@@ -44,6 +45,8 @@ const elements = {
   settingsAccessSheet: document.querySelector("#settingsAccessSheet"),
   settingsSheet: document.querySelector("#settingsSheet"),
   monthSheet: document.querySelector("#monthSheet"),
+  monthListViewButton: document.querySelector("#monthListViewButton"),
+  monthCalendarViewButton: document.querySelector("#monthCalendarViewButton"),
   settingsAccessInput: document.querySelector("#settingsAccessInput"),
   settingsAccessError: document.querySelector("#settingsAccessError"),
   openSettingsConfirmButton: document.querySelector("#openSettingsConfirmButton"),
@@ -68,6 +71,7 @@ const elements = {
   githubToken: document.querySelector("#githubToken"),
   syncPassphrase: document.querySelector("#syncPassphrase"),
   monthList: document.querySelector("#monthList"),
+  monthCalendar: document.querySelector("#monthCalendar"),
   clearGithubTokenButton: document.querySelector("#clearGithubTokenButton"),
   refreshNowButton: document.querySelector("#refreshNowButton"),
 };
@@ -88,6 +92,8 @@ function bindEvents() {
   document.querySelector("#openManualButton").addEventListener("click", () => openEntrySheet("manual"));
   document.querySelector("#openAddButton").addEventListener("click", () => openEntrySheet("manual"));
   document.querySelector("#openMonthSheetButton").addEventListener("click", openMonthSheet);
+  elements.monthListViewButton.addEventListener("click", () => setMonthViewMode("list"));
+  elements.monthCalendarViewButton.addEventListener("click", () => setMonthViewMode("calendar"));
   elements.refreshNowButton.addEventListener("click", refreshNow);
   document.querySelector("#openSettingsButton").addEventListener("click", openSettingsAccessSheet);
   elements.openSettingsConfirmButton.addEventListener("click", handleSettingsAccess);
@@ -202,7 +208,7 @@ function persistExpenses() {
 function render() {
   renderHeader();
   renderTotals();
-  renderMonthList();
+  renderMonthSheetContent();
   renderSyncState();
 }
 
@@ -286,8 +292,27 @@ function getEntrySheetConfig(mode) {
 }
 
 function openMonthSheet() {
-  renderMonthList();
+  renderMonthSheetContent();
   elements.monthSheet.hidden = false;
+}
+
+function setMonthViewMode(mode) {
+  state.monthViewMode = mode;
+  renderMonthSheetContent();
+}
+
+function renderMonthSheetContent() {
+  renderMonthViewSwitch();
+  renderMonthList();
+  renderMonthCalendar();
+}
+
+function renderMonthViewSwitch() {
+  const isList = state.monthViewMode === "list";
+  elements.monthList.hidden = !isList;
+  elements.monthCalendar.hidden = isList;
+  elements.monthListViewButton.classList.toggle("active", isList);
+  elements.monthCalendarViewButton.classList.toggle("active", !isList);
 }
 
 function openSettingsSheet() {
@@ -428,6 +453,58 @@ function renderMonthList() {
     `;
     elements.monthList.append(card);
   });
+}
+
+function renderMonthCalendar() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const monthKey = `${year}-${String(month + 1).padStart(2, "0")}`;
+  const monthItems = state.expenses.filter((item) => item.date.startsWith(monthKey));
+  const byDate = monthItems.reduce((acc, item) => {
+    acc[item.date] ??= [];
+    acc[item.date].push(item);
+    return acc;
+  }, {});
+  const firstWeekday = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const cells = [];
+
+  for (let index = 0; index < firstWeekday; index += 1) {
+    cells.push('<div class="calendar-cell empty" aria-hidden="true"></div>');
+  }
+
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    const dateKey = `${monthKey}-${String(day).padStart(2, "0")}`;
+    const items = byDate[dateKey] || [];
+    const total = items.reduce((sum, item) => sum + item.amount, 0);
+    const topLine = items.slice(0, 2).map((item) => escapeHtml(item.merchant)).join(" · ");
+
+    cells.push(`
+      <div class="calendar-cell${items.length ? " filled" : ""}">
+        <div class="calendar-day">${day}</div>
+        <div class="calendar-sum">${items.length ? formatCompactCurrency(total) : ""}</div>
+        <div class="calendar-note">${topLine}</div>
+      </div>
+    `);
+  }
+
+  elements.monthCalendar.innerHTML = `
+    <article class="calendar-card">
+      <div class="calendar-head">
+        <strong class="month-title">${formatMonthLabel(monthKey)}</strong>
+        <strong class="month-total">${currency.format(monthItems.reduce((sum, item) => sum + item.amount, 0))}</strong>
+      </div>
+      <div class="calendar-weekdays">
+        ${["일", "월", "화", "수", "목", "금", "토"]
+          .map((label) => `<span>${label}</span>`)
+          .join("")}
+      </div>
+      <div class="calendar-grid">
+        ${cells.join("")}
+      </div>
+    </article>
+  `;
 }
 
 function hydrateSettings() {
@@ -624,6 +701,19 @@ function formatSyncTime(date) {
   const hours = String(date.getHours()).padStart(2, "0");
   const minutes = String(date.getMinutes()).padStart(2, "0");
   return `${hours}:${minutes}`;
+}
+
+function formatCompactCurrency(value) {
+  if (value >= 10000) {
+    const amount = Math.round((value / 10000) * 10) / 10;
+    return `${amount}만`;
+  }
+
+  if (value >= 1000) {
+    return `${Math.round(value / 1000)}천`;
+  }
+
+  return `${value}`;
 }
 
 function githubHeaders(token) {

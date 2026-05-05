@@ -269,7 +269,12 @@
           <button class="icon-button small" data-close-sheet="monthSheet" aria-label="닫기">×</button>
         </div>
         <div class="sheet-body">
+          <div class="view-switch" id="monthViewSwitch">
+            <button class="view-chip active" id="monthListViewButton" type="button">리스트</button>
+            <button class="view-chip" id="monthCalendarViewButton" type="button">달력</button>
+          </div>
           <div class="month-list" id="monthList"></div>
+          <div class="month-calendar" id="monthCalendar" hidden></div>
         </div>
       </div>
     </section>
