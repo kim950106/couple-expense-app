@@ -162,7 +162,8 @@ textarea {
 .quick-card p,
 .ghost-button,
 .helper-text,
-.info-card p {
+.info-card p,
+.sheet-copy {
   margin: 0;
 }
 
@@ -194,6 +195,15 @@ textarea {
   background: rgba(255, 255, 255, 0.16);
   font-size: 0.82rem;
   white-space: nowrap;
+}
+
+.hero-link {
+  margin-top: 16px;
+  padding: 10px 12px;
+  border-radius: 999px;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.14);
+  font-weight: 700;
 }
 
 .quick-actions {
@@ -278,9 +288,14 @@ textarea {
 }
 
 .helper-text,
-.info-card p {
+.info-card p,
+.sheet-copy {
   color: var(--muted);
   font-size: 0.88rem;
+}
+
+.sheet-copy {
+  margin-top: 6px;
 }
 
 .floating-add {
@@ -329,6 +344,53 @@ textarea {
   display: grid;
   gap: 14px;
   margin-top: 14px;
+}
+
+.month-list {
+  display: grid;
+  gap: 12px;
+}
+
+.month-card {
+  padding: 16px;
+  border-radius: var(--radius-md);
+  background: var(--surface-strong);
+  border: 1px solid var(--line);
+}
+
+.month-head,
+.month-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.month-head {
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.month-title,
+.month-total,
+.month-store {
+  font-weight: 700;
+}
+
+.month-total {
+  letter-spacing: -0.02em;
+}
+
+.month-item {
+  padding-top: 10px;
+  margin-top: 10px;
+  border-top: 1px solid rgba(148, 163, 184, 0.16);
+  align-items: flex-start;
+}
+
+.month-meta,
+.month-amount {
+  font-size: 0.82rem;
+  color: var(--muted);
 }
 
 .field-block {

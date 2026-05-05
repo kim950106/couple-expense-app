@@ -49,9 +49,11 @@ const elements = {
   partnerTotal: document.querySelector("#partnerTotal"),
   heroSummary: document.querySelector("#heroSummary"),
   entrySheet: document.querySelector("#entrySheet"),
+  monthSheet: document.querySelector("#monthSheet"),
   settingsSheet: document.querySelector("#settingsSheet"),
   sheetEyebrow: document.querySelector("#sheetEyebrow"),
   sheetTitle: document.querySelector("#sheetTitle"),
+  sheetCopy: document.querySelector("#sheetCopy"),
   rawTextField: document.querySelector("#rawTextField"),
   imageField: document.querySelector("#imageField"),
   rawMessage: document.querySelector("#rawMessage"),
@@ -67,6 +69,7 @@ const elements = {
   githubPath: document.querySelector("#githubPath"),
   githubToken: document.querySelector("#githubToken"),
   syncPassphrase: document.querySelector("#syncPassphrase"),
+  monthList: document.querySelector("#monthList"),
 };
 
 bindEvents();
@@ -79,6 +82,7 @@ function bindEvents() {
   document.querySelector("#openImageButton").addEventListener("click", () => openEntrySheet("image"));
   document.querySelector("#openManualButton").addEventListener("click", () => openEntrySheet("manual"));
   document.querySelector("#openAddButton").addEventListener("click", () => openEntrySheet("manual"));
+  document.querySelector("#openMonthSheetButton").addEventListener("click", openMonthSheet);
   document.querySelector("#openSettingsButton").addEventListener("click", openSettingsSheet);
   document.querySelector("#parseMessageButton").addEventListener("click", handleParseMessage);
   document.querySelector("#ocrButton").addEventListener("click", handleOcr);
@@ -91,7 +95,7 @@ function bindEvents() {
     button.addEventListener("click", () => closeSheet(button.dataset.closeSheet));
   });
 
-  [elements.entrySheet, elements.settingsSheet].forEach((sheet) => {
+  [elements.entrySheet, elements.monthSheet, elements.settingsSheet].forEach((sheet) => {
     sheet.addEventListener("click", (event) => {
       if (event.target === sheet) closeSheet(sheet.id);
     });
@@ -117,6 +121,7 @@ function persistExpenses() {
 function render() {
   renderHeader();
   renderTotals();
+  renderMonthList();
 }
 
 function renderHeader() {
@@ -145,18 +150,51 @@ function renderTotals() {
 
 function openEntrySheet(mode) {
   state.currentMode = mode;
-  elements.sheetEyebrow.textContent =
-    mode === "paste" ? "텍스트 자동 분석" : mode === "image" ? "스크린샷 OCR" : "수동 입력";
-  elements.sheetTitle.textContent =
-    mode === "paste" ? "메시지 붙여넣기" : mode === "image" ? "사진으로 입력" : "직접 기록 추가";
+  const config = getEntrySheetConfig(mode);
+  elements.sheetEyebrow.textContent = config.eyebrow;
+  elements.sheetTitle.textContent = config.title;
+  elements.sheetCopy.textContent = config.copy;
   elements.rawTextField.hidden = mode === "manual";
   elements.imageField.hidden = mode !== "image";
+  elements.rawMessage.placeholder = config.placeholder;
 
   if (mode === "manual") {
     elements.rawMessage.value = "";
   }
 
   elements.entrySheet.hidden = false;
+}
+
+function getEntrySheetConfig(mode) {
+  if (mode === "paste") {
+    return {
+      eyebrow: "문자 저장",
+      title: "문자 붙여넣기",
+      copy: "카카오톡 문자에서 바로 채워요.",
+      placeholder: "예: 삼성9161승인 김*철\n5,900원 일시불\n05/05 00:13 씨유(CU)대방디엠",
+    };
+  }
+
+  if (mode === "image") {
+    return {
+      eyebrow: "사진 저장",
+      title: "사진 입력",
+      copy: "스크린샷 문자만 읽어와요.",
+      placeholder: "사진에서 읽은 문자가 여기에 보여요.",
+    };
+  }
+
+  return {
+    eyebrow: "직접 저장",
+    title: "직접 입력",
+    copy: "금액과 가맹점을 바로 적어요.",
+    placeholder: "직접 입력은 위 칸 없이 아래만 써도 돼요.",
+  };
+}
+
+function openMonthSheet() {
+  renderMonthList();
+  elements.monthSheet.hidden = false;
 }
 
 function openSettingsSheet() {
@@ -242,6 +280,60 @@ function saveEntry() {
   render();
   closeSheet("entrySheet");
   resetEntryForm();
+}
+
+function renderMonthList() {
+  const grouped = state.expenses.reduce((acc, item) => {
+    const key = item.date.slice(0, 7);
+    acc[key] ??= [];
+    acc[key].push(item);
+    return acc;
+  }, {});
+
+  const months = Object.keys(grouped).sort((a, b) => (a < b ? 1 : -1));
+  elements.monthList.innerHTML = "";
+
+  if (!months.length) {
+    elements.monthList.innerHTML = `
+      <article class="month-card">
+        <div class="month-head">
+          <strong class="month-title">내역 없음</strong>
+          <strong class="month-total">${currency.format(0)}</strong>
+        </div>
+      </article>
+    `;
+    return;
+  }
+
+  months.forEach((monthKey) => {
+    const items = grouped[monthKey].sort((a, b) => (a.date < b.date ? 1 : -1));
+    const total = items.reduce((sum, item) => sum + item.amount, 0);
+    const card = document.createElement("article");
+    card.className = "month-card";
+    card.innerHTML = `
+      <div class="month-head">
+        <strong class="month-title">${formatMonthLabel(monthKey)}</strong>
+        <strong class="month-total">${currency.format(total)}</strong>
+      </div>
+      ${items
+        .map(
+          (item) => `
+            <div class="month-item">
+              <div>
+                <div class="month-store">${escapeHtml(item.merchant)}</div>
+                <div class="month-meta">${escapeHtml(item.person)} · ${formatDayLabel(item.date)}</div>
+              </div>
+              <div>
+                <div class="month-total">${currency.format(item.amount)}</div>
+                <div class="month-amount">${escapeHtml(item.note || "")}</div>
+              </div>
+            </div>
+          `
+        )
+        .join("")}
+    `;
+    elements.monthList.append(card);
+  });
 }
 
 function hydrateSettings() {
@@ -579,6 +671,16 @@ function isCurrentMonth(dateString) {
   const today = new Date();
   const date = new Date(`${dateString}T00:00:00`);
   return date.getFullYear() === today.getFullYear() && date.getMonth() === today.getMonth();
+}
+
+function formatMonthLabel(monthKey) {
+  const [year, month] = monthKey.split("-");
+  return `${Number(year)}.${Number(month)}`;
+}
+
+function formatDayLabel(dateString) {
+  const [, month, day] = dateString.split("-");
+  return `${Number(month)}/${Number(day)}`;
 }
 
 function escapeHtml(value) {

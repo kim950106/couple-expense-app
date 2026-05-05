@@ -35,6 +35,7 @@
             <span>지은 <b id="meTotal">₩0</b></span>
             <span>현철 <b id="partnerTotal">₩0</b></span>
           </div>
+          <button class="hero-link" id="openMonthSheetButton" type="button">월별 내역</button>
         </section>
 
         <section class="composer-card">
@@ -80,6 +81,7 @@
           <div>
             <p class="eyebrow" id="sheetEyebrow">새 내역</p>
             <h3 id="sheetTitle">지출 저장</h3>
+            <p class="sheet-copy" id="sheetCopy">입력 방식에 맞게 저장해요.</p>
           </div>
           <button class="icon-button small" data-close-sheet="entrySheet" aria-label="닫기">×</button>
         </div>
@@ -188,6 +190,23 @@
             <button class="secondary-button" id="loadGithubButton" type="button">GitHub에서 불러오기</button>
             <button class="primary-button" id="saveGithubButton" type="button">GitHub로 저장하기</button>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="sheet-backdrop" id="monthSheet" hidden>
+      <div class="sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-head">
+          <div>
+            <p class="eyebrow">내역</p>
+            <h3>월별 보기</h3>
+            <p class="sheet-copy">월별 합계와 최근 내역</p>
+          </div>
+          <button class="icon-button small" data-close-sheet="monthSheet" aria-label="닫기">×</button>
+        </div>
+        <div class="sheet-body">
+          <div class="month-list" id="monthList"></div>
         </div>
       </div>
     </section>
