@@ -100,7 +100,7 @@ function handlePinSubmit(event) {
   event.preventDefault();
   if (state.pinValue !== APP_PIN) {
     elements.pinError.hidden = false;
-    clearPinValue();
+    resetPinValue();
     return;
   }
 
@@ -121,6 +121,11 @@ function handlePinKey(value) {
 
 function clearPinValue() {
   state.pinValue = state.pinValue.slice(0, -1);
+  renderPinDots();
+}
+
+function resetPinValue() {
+  state.pinValue = "";
   renderPinDots();
 }
 
@@ -493,7 +498,6 @@ async function pushToGitHub() {
       throw new Error(`GitHub save failed: ${response.status}`);
     }
 
-    renderSyncBanner();
     closeSheet("settingsSheet");
     alert("GitHub private repo로 저장했어요.");
   } catch (error) {
