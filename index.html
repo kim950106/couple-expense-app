@@ -104,11 +104,11 @@
                 <p>카톡 내용 저장</p>
               </div>
             </button>
-            <button class="quick-card" id="openImageButton">
-              <span class="quick-icon">◫</span>
+            <button class="quick-card" id="openScheduleButton">
+              <span class="quick-icon">◌</span>
               <div>
-                <strong>사진 입력</strong>
-                <p>스크린샷 저장</p>
+                <strong>일정 입력</strong>
+                <p>달력 일정 저장</p>
               </div>
             </button>
             <button class="quick-card" id="openManualButton">
@@ -150,15 +150,6 @@
             </button>
           </label>
 
-          <label class="field-block" id="imageField">
-            <span id="imageFieldLabel">영수증 사진</span>
-            <input id="receiptImage" type="file" accept="image/*" />
-            <button class="ghost-button inline-button" id="ocrButton" type="button">
-              영수증 입력
-            </button>
-            <p class="helper-text" id="ocrStatus">영수증 내용이 자동으로 채워져요.</p>
-          </label>
-
           <div class="grid-two">
             <label class="field-block">
               <span>사용자</span>
@@ -168,17 +159,28 @@
               </select>
             </label>
             <label class="field-block">
-              <span>결제일</span>
+              <span id="dateLabel">결제일</span>
               <input id="dateInput" type="date" />
             </label>
           </div>
 
-          <div class="grid-two">
+          <div class="grid-two" id="scheduleDateGrid" hidden>
             <label class="field-block">
-              <span>가맹점</span>
-              <input id="merchantInput" type="text" placeholder="예: 스타벅스 성수" />
+              <span>시작일</span>
+              <input id="scheduleStartInput" type="date" />
             </label>
             <label class="field-block">
+              <span>종료일</span>
+              <input id="scheduleEndInput" type="date" />
+            </label>
+          </div>
+
+          <div class="grid-two" id="entryMainGrid">
+            <label class="field-block">
+              <span id="merchantLabel">가맹점</span>
+              <input id="merchantInput" type="text" placeholder="예: 스타벅스 성수" />
+            </label>
+            <label class="field-block" id="amountField">
               <span>금액</span>
               <input id="amountInput" type="number" inputmode="numeric" placeholder="6100" />
             </label>

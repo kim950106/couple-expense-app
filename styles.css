@@ -642,30 +642,33 @@ textarea {
 
 .calendar-cell {
   min-height: 76px;
-  padding: 8px 6px;
+  padding: 8px 6px 6px;
   border-radius: 16px;
   background: rgba(148, 163, 184, 0.08);
   display: grid;
   align-content: start;
   gap: 4px;
   text-align: left;
+  position: relative;
 }
 
-.calendar-cell.filled {
-  background: linear-gradient(180deg, rgba(47, 128, 255, 0.16), rgba(47, 128, 255, 0.08));
+.calendar-cell.split {
+  grid-template-rows: auto 1fr 1fr;
 }
 
 .calendar-cell.empty {
   background: transparent;
 }
 
-.calendar-cell:disabled {
-  cursor: default;
+.calendar-cell.active {
+  background: rgba(148, 163, 184, 0.04);
 }
 
 .calendar-day {
   font-size: 0.82rem;
   font-weight: 800;
+  position: relative;
+  z-index: 2;
 }
 
 .calendar-sum {
@@ -673,6 +676,40 @@ textarea {
   font-weight: 700;
   color: var(--brand-deep);
   white-space: nowrap;
+}
+
+.calendar-layer {
+  border-radius: 12px;
+  padding: 6px 5px;
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  min-height: 44px;
+  color: #fff;
+}
+
+.calendar-layer.expense {
+  background: linear-gradient(180deg, rgba(47, 128, 255, 0.9), rgba(47, 128, 255, 0.72));
+}
+
+.calendar-layer.schedule {
+  background: linear-gradient(180deg, rgba(249, 115, 22, 0.92), rgba(251, 146, 60, 0.82));
+}
+
+.calendar-layer.half {
+  min-height: 100%;
+  border-radius: 10px;
+}
+
+.calendar-schedule-label {
+  font-size: 0.66rem;
+  font-weight: 700;
+  line-height: 1.2;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-all;
 }
 
 .month-item-side {

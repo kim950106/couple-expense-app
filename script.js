@@ -60,14 +60,17 @@ const elements = {
   sheetCopy: document.querySelector("#sheetCopy"),
   rawTextField: document.querySelector("#rawTextField"),
   rawTextLabel: document.querySelector("#rawTextLabel"),
-  imageField: document.querySelector("#imageField"),
-  imageFieldLabel: document.querySelector("#imageFieldLabel"),
   rawMessage: document.querySelector("#rawMessage"),
-  receiptImage: document.querySelector("#receiptImage"),
-  ocrStatus: document.querySelector("#ocrStatus"),
   personInput: document.querySelector("#personInput"),
   dateInput: document.querySelector("#dateInput"),
+  dateLabel: document.querySelector("#dateLabel"),
+  scheduleDateGrid: document.querySelector("#scheduleDateGrid"),
+  scheduleStartInput: document.querySelector("#scheduleStartInput"),
+  scheduleEndInput: document.querySelector("#scheduleEndInput"),
+  entryMainGrid: document.querySelector("#entryMainGrid"),
+  merchantLabel: document.querySelector("#merchantLabel"),
   merchantInput: document.querySelector("#merchantInput"),
+  amountField: document.querySelector("#amountField"),
   amountInput: document.querySelector("#amountInput"),
   noteInput: document.querySelector("#noteInput"),
   githubOwner: document.querySelector("#githubOwner"),
@@ -97,7 +100,7 @@ function bindEvents() {
   });
   elements.pinClearButton.addEventListener("click", clearPinValue);
   document.querySelector("#openPasteButton").addEventListener("click", () => openEntrySheet("paste"));
-  document.querySelector("#openImageButton").addEventListener("click", () => openEntrySheet("image"));
+  document.querySelector("#openScheduleButton").addEventListener("click", () => openEntrySheet("schedule"));
   document.querySelector("#openManualButton").addEventListener("click", () => openEntrySheet("manual"));
   document.querySelector("#openAddButton").addEventListener("click", () => openEntrySheet("manual"));
   document.querySelector("#openMonthListButton").addEventListener("click", () => openMonthSheet("list"));
@@ -117,7 +120,6 @@ function bindEvents() {
     }
   });
   document.querySelector("#parseMessageButton").addEventListener("click", handleParseMessage);
-  document.querySelector("#ocrButton").addEventListener("click", handleOcr);
   document.querySelector("#saveEntryButton").addEventListener("click", saveEntry);
   document.querySelector("#resetFormButton").addEventListener("click", resetEntryForm);
   document.querySelector("#saveGithubButton").addEventListener("click", pushToGitHub);
@@ -234,7 +236,7 @@ function renderHeader() {
 }
 
 function renderTotals() {
-  const monthEntries = state.expenses.filter((item) => isCurrentMonth(item.date));
+  const monthEntries = state.expenses.filter((item) => isExpense(item) && isCurrentMonth(item.date));
   const totals = monthEntries.reduce(
     (acc, item) => {
       acc.total += item.amount;
@@ -259,15 +261,17 @@ function openEntrySheet(mode) {
   elements.sheetTitle.textContent = config.title;
   elements.sheetCopy.textContent = config.copy;
   elements.rawTextField.hidden = mode !== "paste";
-  elements.imageField.hidden = mode !== "image";
+  elements.scheduleDateGrid.hidden = mode !== "schedule";
+  elements.amountField.hidden = mode === "schedule";
+  elements.dateInput.parentElement.hidden = mode === "schedule";
   elements.rawMessage.placeholder = config.placeholder;
   elements.rawTextLabel.textContent = config.rawTextLabel || "카카오톡 메시지";
-  elements.imageFieldLabel.textContent = config.imageFieldLabel || "영수증 사진";
+  elements.dateLabel.textContent = config.dateLabel || "결제일";
+  elements.merchantLabel.textContent = config.merchantLabel || "가맹점";
+  elements.merchantInput.placeholder = config.merchantPlaceholder || "예: 스타벅스 성수";
   document.querySelector("#parseMessageButton").textContent = config.parseButtonLabel || "입력하기";
-  document.querySelector("#ocrButton").textContent = config.imageButtonLabel || "영수증 입력";
-  elements.ocrStatus.textContent = config.imageHelperText || "영수증 내용이 자동으로 채워져요.";
 
-  if (mode === "manual") {
+  if (mode === "manual" || mode === "schedule") {
     elements.rawMessage.value = "";
   }
 
@@ -286,15 +290,14 @@ function getEntrySheetConfig(mode) {
     };
   }
 
-  if (mode === "image") {
+  if (mode === "schedule") {
     return {
-      eyebrow: "영수증 저장",
-      title: "영수증 입력",
-      copy: "영수증 내용만 채워요.",
+      eyebrow: "일정 저장",
+      title: "일정 입력",
+      copy: "장소와 기간만 적어요.",
       placeholder: "",
-      imageFieldLabel: "영수증 사진",
-      imageButtonLabel: "영수증 입력",
-      imageHelperText: "영수증 내용이 자동으로 채워져요.",
+      merchantLabel: "장소",
+      merchantPlaceholder: "예: 성수 팝업스토어",
     };
   }
 
@@ -355,44 +358,26 @@ function closeSheet(sheetId) {
 
 function resetEntryForm() {
   elements.rawMessage.value = "";
-  elements.receiptImage.value = "";
   elements.personInput.value = "지은";
   elements.merchantInput.value = "";
   elements.amountInput.value = "";
   elements.noteInput.value = "";
-  elements.ocrStatus.textContent = "영수증 내용이 자동으로 채워져요.";
   setDefaultDate();
+  elements.scheduleStartInput.value = new Date().toISOString().slice(0, 10);
+  elements.scheduleEndInput.value = new Date().toISOString().slice(0, 10);
 }
 
 function setDefaultDate() {
-  elements.dateInput.value = new Date().toISOString().slice(0, 10);
+  const today = new Date().toISOString().slice(0, 10);
+  elements.dateInput.value = today;
+  elements.scheduleStartInput.value = today;
+  elements.scheduleEndInput.value = today;
 }
 
 function handleParseMessage() {
   const parsed = parseExpenseMessage(elements.rawMessage.value);
   applyParsedData(parsed);
   elements.noteInput.value = elements.noteInput.value || "문자 추출";
-}
-
-async function handleOcr() {
-  const file = elements.receiptImage.files[0];
-  if (!file) {
-    elements.ocrStatus.textContent = "먼저 영수증 사진을 넣어 주세요.";
-    return;
-  }
-
-  elements.ocrStatus.textContent = "영수증 내용을 넣는 중이에요.";
-
-  try {
-    const result = await Tesseract.recognize(file, "kor+eng");
-    const text = result.data.text.trim();
-    elements.rawMessage.value = text;
-    elements.ocrStatus.textContent = text ? "영수증 내용이 채워졌어요." : "영수증 내용을 찾지 못했어요.";
-    if (text) handleParseMessage();
-  } catch (error) {
-    elements.ocrStatus.textContent = "영수증 입력이 안 됐어요. 다시 시도해 주세요.";
-    console.error(error);
-  }
 }
 
 function applyParsedData(parsed) {
@@ -405,22 +390,47 @@ function applyParsedData(parsed) {
 
 function saveEntry() {
   const merchant = elements.merchantInput.value.trim();
-  const amount = Number(elements.amountInput.value);
-  if (!merchant || !amount) {
-    alert("가맹점과 금액은 꼭 입력해 주세요.");
-    return;
-  }
+  let entry;
 
-  const entry = {
-    id: crypto.randomUUID(),
-    person: elements.personInput.value,
-    date: elements.dateInput.value || new Date().toISOString().slice(0, 10),
-    merchant,
-    amount,
-    note: elements.noteInput.value.trim(),
-    rawText: elements.rawMessage.value.trim(),
-    createdAt: new Date().toISOString(),
-  };
+  if (state.currentMode === "schedule") {
+    const startDate = elements.scheduleStartInput.value || new Date().toISOString().slice(0, 10);
+    const endDate = elements.scheduleEndInput.value || startDate;
+    if (!merchant) {
+      alert("장소는 꼭 입력해 주세요.");
+      return;
+    }
+    if (endDate < startDate) {
+      alert("기간을 다시 확인해 주세요.");
+      return;
+    }
+    entry = {
+      id: crypto.randomUUID(),
+      type: "schedule",
+      person: elements.personInput.value,
+      place: merchant,
+      startDate,
+      endDate,
+      note: elements.noteInput.value.trim(),
+      createdAt: new Date().toISOString(),
+    };
+  } else {
+    const amount = Number(elements.amountInput.value);
+    if (!merchant || !amount) {
+      alert("가맹점과 금액은 꼭 입력해 주세요.");
+      return;
+    }
+    entry = {
+      id: crypto.randomUUID(),
+      type: "expense",
+      person: elements.personInput.value,
+      date: elements.dateInput.value || new Date().toISOString().slice(0, 10),
+      merchant,
+      amount,
+      note: elements.noteInput.value.trim(),
+      rawText: elements.rawMessage.value.trim(),
+      createdAt: new Date().toISOString(),
+    };
+  }
 
   state.expenses = [entry, ...state.expenses];
   persistExpenses();
@@ -432,7 +442,7 @@ function saveEntry() {
 function renderMonthList() {
   const monthKey = state.selectedMonthKey;
   const items = state.expenses
-    .filter((item) => item.date.startsWith(monthKey))
+    .filter((item) => isExpense(item) && item.date.startsWith(monthKey))
     .sort((a, b) => (a.date < b.date ? 1 : -1) || (a.createdAt < b.createdAt ? 1 : -1));
   elements.monthList.innerHTML = "";
 
@@ -483,12 +493,21 @@ function renderMonthCalendar() {
   const year = Number(yearText);
   const month = Number(monthText) - 1;
   const monthKey = state.selectedMonthKey;
-  const monthItems = state.expenses.filter((item) => item.date.startsWith(monthKey));
-  const byDate = monthItems.reduce((acc, item) => {
+  const expenseItems = state.expenses.filter((item) => isExpense(item) && item.date.startsWith(monthKey));
+  const scheduleItems = state.expenses.filter((item) => isSchedule(item) && isScheduleInMonth(item, year, month));
+  const expenseByDate = expenseItems.reduce((acc, item) => {
     acc[item.date] ??= [];
     acc[item.date].push(item);
     return acc;
   }, {});
+  const scheduleByDate = {};
+  scheduleItems.forEach((item) => {
+    getDatesInRange(item.startDate, item.endDate).forEach((dateKey) => {
+      if (!dateKey.startsWith(monthKey)) return;
+      scheduleByDate[dateKey] ??= [];
+      scheduleByDate[dateKey].push(item);
+    });
+  });
   const firstWeekday = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const cells = [];
@@ -499,14 +518,31 @@ function renderMonthCalendar() {
 
   for (let day = 1; day <= daysInMonth; day += 1) {
     const dateKey = `${monthKey}-${String(day).padStart(2, "0")}`;
-    const items = byDate[dateKey] || [];
-    const total = items.reduce((sum, item) => sum + item.amount, 0);
+    const expenseItemsForDay = expenseByDate[dateKey] || [];
+    const scheduleItemsForDay = scheduleByDate[dateKey] || [];
+    const expenseTotal = expenseItemsForDay.reduce((sum, item) => sum + item.amount, 0);
+    const hasExpense = expenseItemsForDay.length > 0;
+    const hasSchedule = scheduleItemsForDay.length > 0;
+    const splitClass = hasExpense && hasSchedule ? " split" : "";
 
     cells.push(`
-      <button class="calendar-cell${items.length ? " filled" : ""}" type="button" ${items.length ? `data-calendar-date="${dateKey}"` : "disabled"}>
+      <div class="calendar-cell${splitClass}${hasExpense || hasSchedule ? " active" : ""}">
         <div class="calendar-day">${day}</div>
-        <div class="calendar-sum">${items.length ? formatCompactCurrency(total) : ""}</div>
-      </button>
+        ${
+          hasExpense
+            ? `<button class="calendar-layer expense${hasSchedule ? " half" : ""}" type="button" data-calendar-date="${dateKey}" data-calendar-kind="expense">
+                <span class="calendar-sum">${formatCompactCurrency(expenseTotal)}</span>
+              </button>`
+            : ""
+        }
+        ${
+          hasSchedule
+            ? `<button class="calendar-layer schedule${hasExpense ? " half" : ""}" type="button" data-calendar-date="${dateKey}" data-calendar-kind="schedule">
+                <span class="calendar-schedule-label">${hasExpense ? "일정" : scheduleItemsForDay[0].place}</span>
+              </button>`
+            : ""
+        }
+      </div>
     `);
   }
 
@@ -514,7 +550,7 @@ function renderMonthCalendar() {
     <article class="calendar-card">
       <div class="calendar-head">
         <strong class="month-title">${formatMonthLabel(monthKey)}</strong>
-        <strong class="month-total">${currency.format(monthItems.reduce((sum, item) => sum + item.amount, 0))}</strong>
+        <strong class="month-total">${currency.format(expenseItems.reduce((sum, item) => sum + item.amount, 0))}</strong>
       </div>
       <div class="calendar-weekdays">
         ${["일", "월", "화", "수", "목", "금", "토"]
@@ -524,26 +560,28 @@ function renderMonthCalendar() {
       <div class="calendar-grid">
         ${cells.join("")}
       </div>
-      ${monthItems.length ? "" : '<div class="month-meta calendar-empty-copy">이 달에는 저장된 내역이 없어요.</div>'}
+      ${expenseItems.length || scheduleItems.length ? "" : '<div class="month-meta calendar-empty-copy">이 달에는 저장된 내역이 없어요.</div>'}
     </article>
   `;
 }
 
 function handleMonthCalendarClick(event) {
-  const target = event.target.closest("[data-calendar-date]");
+  const target = event.target.closest("[data-calendar-date][data-calendar-kind]");
   if (!target) return;
 
-  openDayDetailSheet(target.dataset.calendarDate);
+  openDayDetailSheet(target.dataset.calendarDate, target.dataset.calendarKind);
 }
 
-function openDayDetailSheet(dateKey) {
+function openDayDetailSheet(dateKey, kind = "expense") {
   const items = state.expenses
-    .filter((item) => item.date === dateKey)
+    .filter((item) => (kind === "schedule" ? isScheduleOnDate(item, dateKey) : isExpense(item) && item.date === dateKey))
     .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
 
-  const total = items.reduce((sum, item) => sum + item.amount, 0);
-  elements.dayDetailTitle.textContent = formatDateLabel(dateKey);
-  elements.dayDetailSummary.textContent = `${currency.format(total)} · ${items.length}건`;
+  elements.dayDetailTitle.textContent = kind === "schedule" ? `${formatDateLabel(dateKey)} 일정` : formatDateLabel(dateKey);
+  elements.dayDetailSummary.textContent =
+    kind === "schedule"
+      ? `${items.length}건`
+      : `${currency.format(items.reduce((sum, item) => sum + item.amount, 0))} · ${items.length}건`;
 
   if (!items.length) {
     elements.dayDetailList.innerHTML = `
@@ -560,11 +598,15 @@ function openDayDetailSheet(dateKey) {
         (item) => `
           <article class="day-detail-item">
             <div>
-              <div class="month-store">${escapeHtml(item.merchant)}</div>
-              <div class="month-meta">${escapeHtml(item.person)}${item.note ? ` · ${escapeHtml(item.note)}` : ""}</div>
+              <div class="month-store">${escapeHtml(kind === "schedule" ? item.place : item.merchant)}</div>
+              <div class="month-meta">${
+                kind === "schedule"
+                  ? `${escapeHtml(item.person)} · ${formatDateLabel(item.startDate)} - ${formatDateLabel(item.endDate)}${item.note ? ` · ${escapeHtml(item.note)}` : ""}`
+                  : `${escapeHtml(item.person)}${item.note ? ` · ${escapeHtml(item.note)}` : ""}`
+              }</div>
             </div>
             <div class="day-detail-side">
-              <div class="month-total">${currency.format(item.amount)}</div>
+              <div class="month-total">${kind === "schedule" ? "일정" : currency.format(item.amount)}</div>
               <button class="month-cancel" type="button" data-expense-id="${escapeHtml(item.id)}">취소</button>
             </div>
           </article>
@@ -796,6 +838,36 @@ function shiftMonthKey(monthKey, offset) {
 function formatMonthNavLabel(monthKey) {
   const [year, month] = monthKey.split("-");
   return `${year}년 ${Number(month)}월`;
+}
+
+function isExpense(item) {
+  return (item.type || "expense") === "expense";
+}
+
+function isSchedule(item) {
+  return item.type === "schedule";
+}
+
+function isScheduleOnDate(item, dateKey) {
+  return isSchedule(item) && item.startDate <= dateKey && item.endDate >= dateKey;
+}
+
+function isScheduleInMonth(item, year, monthIndex) {
+  if (!isSchedule(item)) return false;
+  const monthStart = `${year}-${String(monthIndex + 1).padStart(2, "0")}-01`;
+  const monthEnd = `${year}-${String(monthIndex + 1).padStart(2, "0")}-${String(new Date(year, monthIndex + 1, 0).getDate()).padStart(2, "0")}`;
+  return item.startDate <= monthEnd && item.endDate >= monthStart;
+}
+
+function getDatesInRange(startDate, endDate) {
+  const dates = [];
+  const cursor = new Date(`${startDate}T00:00:00`);
+  const end = new Date(`${endDate}T00:00:00`);
+  while (cursor <= end) {
+    dates.push(cursor.toISOString().slice(0, 10));
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return dates;
 }
 
 function formatCompactCurrency(value) {
