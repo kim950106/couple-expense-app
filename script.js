@@ -1,7 +1,7 @@
 const STORAGE_KEY = "couple-expenses-v1";
 const SETTINGS_KEY = "couple-expenses-github-settings-v1";
-const SESSION_TOKEN_KEY = "couple-expenses-github-token-v1";
-const SESSION_PASSPHRASE_KEY = "couple-expenses-passphrase-v1";
+const DEVICE_TOKEN_KEY = "couple-expenses-github-token-v2";
+const DEVICE_PASSPHRASE_KEY = "couple-expenses-passphrase-v2";
 const DEFAULT_GITHUB_SETTINGS = {
   owner: "kim950106",
   repo: "couple-expense-data",
@@ -565,14 +565,16 @@ function hydrateSettings() {
   elements.githubOwner.value = settings.owner || "";
   elements.githubRepo.value = settings.repo || "";
   elements.githubPath.value = settings.path || "data/expenses.json";
-  elements.githubToken.value = sessionStorage.getItem(SESSION_TOKEN_KEY) || "";
-  elements.syncPassphrase.value = sessionStorage.getItem(SESSION_PASSPHRASE_KEY) || "";
+  elements.githubToken.value = localStorage.getItem(DEVICE_TOKEN_KEY) || "";
+  elements.syncPassphrase.value = localStorage.getItem(DEVICE_PASSPHRASE_KEY) || "";
 }
 
 function clearGithubToken() {
-  sessionStorage.removeItem(SESSION_TOKEN_KEY);
+  localStorage.removeItem(DEVICE_TOKEN_KEY);
+  localStorage.removeItem(DEVICE_PASSPHRASE_KEY);
   elements.githubToken.value = "";
-  alert("토큰을 지웠어요.");
+  elements.syncPassphrase.value = "";
+  alert("이 디바이스의 연결 정보를 지웠어요.");
   renderSyncState();
 }
 
@@ -623,11 +625,11 @@ function saveSettings() {
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
   const token = elements.githubToken.value.trim();
   if (token) {
-    sessionStorage.setItem(SESSION_TOKEN_KEY, token);
+    localStorage.setItem(DEVICE_TOKEN_KEY, token);
   }
   const passphrase = elements.syncPassphrase.value.trim();
   if (passphrase) {
-    sessionStorage.setItem(SESSION_PASSPHRASE_KEY, passphrase);
+    localStorage.setItem(DEVICE_PASSPHRASE_KEY, passphrase);
   }
   renderSyncState();
   return settings;
@@ -636,8 +638,8 @@ function saveSettings() {
 async function loadFromGitHub(options = {}) {
   const { silent = false, closeOnSuccess = true, updateStatus = false } = options;
   const settings = saveSettings();
-  const token = sessionStorage.getItem(SESSION_TOKEN_KEY) || elements.githubToken.value.trim();
-  const passphrase = sessionStorage.getItem(SESSION_PASSPHRASE_KEY) || elements.syncPassphrase.value.trim();
+  const token = localStorage.getItem(DEVICE_TOKEN_KEY) || elements.githubToken.value.trim();
+  const passphrase = localStorage.getItem(DEVICE_PASSPHRASE_KEY) || elements.syncPassphrase.value.trim();
   if (!isGitHubConfigured(settings, token)) {
     if (!silent) alert("Owner, Repo, Path, Token을 모두 입력해 주세요.");
     if (updateStatus) {
@@ -682,8 +684,8 @@ async function loadFromGitHub(options = {}) {
 
 async function pushToGitHub() {
   const settings = saveSettings();
-  const token = sessionStorage.getItem(SESSION_TOKEN_KEY) || elements.githubToken.value.trim();
-  const passphrase = sessionStorage.getItem(SESSION_PASSPHRASE_KEY) || elements.syncPassphrase.value.trim();
+  const token = localStorage.getItem(DEVICE_TOKEN_KEY) || elements.githubToken.value.trim();
+  const passphrase = localStorage.getItem(DEVICE_PASSPHRASE_KEY) || elements.syncPassphrase.value.trim();
   if (!isGitHubConfigured(settings, token)) {
     alert("Owner, Repo, Path, Token을 모두 입력해 주세요.");
     return;
@@ -740,16 +742,16 @@ function startAutoRefresh() {
   state.autoRefreshTimer = window.setInterval(() => {
     if (elements.appShell.hidden) return;
     const settings = loadSettings();
-    const token = sessionStorage.getItem(SESSION_TOKEN_KEY);
-    const passphrase = sessionStorage.getItem(SESSION_PASSPHRASE_KEY);
+    const token = localStorage.getItem(DEVICE_TOKEN_KEY);
+    const passphrase = localStorage.getItem(DEVICE_PASSPHRASE_KEY);
     if (!isGitHubConfigured(settings, token) || !passphrase) return;
     void loadFromGitHub({ silent: true, closeOnSuccess: false, updateStatus: true });
   }, AUTO_REFRESH_MS);
 }
 
 function renderSyncState() {
-  const token = sessionStorage.getItem(SESSION_TOKEN_KEY);
-  const passphrase = sessionStorage.getItem(SESSION_PASSPHRASE_KEY);
+  const token = localStorage.getItem(DEVICE_TOKEN_KEY);
+  const passphrase = localStorage.getItem(DEVICE_PASSPHRASE_KEY);
   elements.syncCopy.textContent = token && passphrase ? "1분마다 자동 새로고침" : "수동 새로고침 가능";
 }
 
