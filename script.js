@@ -13,6 +13,7 @@ const APP_PIN = "0311";
 const state = {
   expenses: loadExpenses(),
   currentMode: "paste",
+  pinValue: "",
 };
 
 const currency = new Intl.NumberFormat("ko-KR", {
@@ -25,8 +26,9 @@ const elements = {
   lockScreen: document.querySelector("#lockScreen"),
   appShell: document.querySelector("#appShell"),
   pinForm: document.querySelector("#pinForm"),
-  pinInput: document.querySelector("#pinInput"),
   pinError: document.querySelector("#pinError"),
+  pinDots: document.querySelector("#pinDots"),
+  pinClearButton: document.querySelector("#pinClearButton"),
   monthLabel: document.querySelector("#monthLabel"),
   monthlyTotal: document.querySelector("#monthlyTotal"),
   meTotal: document.querySelector("#meTotal"),
@@ -66,6 +68,10 @@ render();
 
 function bindEvents() {
   elements.pinForm.addEventListener("submit", handlePinSubmit);
+  document.querySelectorAll("[data-pin-key]").forEach((button) => {
+    button.addEventListener("click", () => handlePinKey(button.dataset.pinKey));
+  });
+  elements.pinClearButton.addEventListener("click", clearPinValue);
   document.querySelector("#openPasteButton").addEventListener("click", () => openEntrySheet("paste"));
   document.querySelector("#openImageButton").addEventListener("click", () => openEntrySheet("image"));
   document.querySelector("#openManualButton").addEventListener("click", () => openEntrySheet("manual"));
@@ -92,16 +98,34 @@ function bindEvents() {
 
 function handlePinSubmit(event) {
   event.preventDefault();
-  const value = elements.pinInput.value.trim();
-  if (value !== APP_PIN) {
+  if (state.pinValue !== APP_PIN) {
     elements.pinError.hidden = false;
-    elements.pinInput.value = "";
+    clearPinValue();
     return;
   }
 
   elements.pinError.hidden = true;
   elements.lockScreen.hidden = true;
   elements.appShell.hidden = false;
+}
+
+function handlePinKey(value) {
+  if (state.pinValue.length >= 4) return;
+  state.pinValue += value;
+  elements.pinError.hidden = true;
+  renderPinDots();
+}
+
+function clearPinValue() {
+  state.pinValue = "";
+  renderPinDots();
+}
+
+function renderPinDots() {
+  const dots = elements.pinDots.querySelectorAll(".pin-dot");
+  dots.forEach((dot, index) => {
+    dot.classList.toggle("filled", index < state.pinValue.length);
+  });
 }
 
 function loadExpenses() {

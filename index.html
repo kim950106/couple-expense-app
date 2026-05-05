@@ -19,8 +19,26 @@
         <h1>지은 현철</h1>
         <p class="lock-copy">PIN 4자리를 입력해 주세요.</p>
         <form class="lock-form" id="pinForm">
-          <input id="pinInput" type="password" inputmode="numeric" maxlength="4" placeholder="0311" />
-          <button class="primary-button" type="submit">들어가기</button>
+          <div class="pin-dots" id="pinDots" aria-label="PIN 입력 상태">
+            <span class="pin-dot"></span>
+            <span class="pin-dot"></span>
+            <span class="pin-dot"></span>
+            <span class="pin-dot"></span>
+          </div>
+          <div class="pin-pad">
+            <button class="pin-key" type="button" data-pin-key="1">1</button>
+            <button class="pin-key" type="button" data-pin-key="2">2</button>
+            <button class="pin-key" type="button" data-pin-key="3">3</button>
+            <button class="pin-key" type="button" data-pin-key="4">4</button>
+            <button class="pin-key" type="button" data-pin-key="5">5</button>
+            <button class="pin-key" type="button" data-pin-key="6">6</button>
+            <button class="pin-key" type="button" data-pin-key="7">7</button>
+            <button class="pin-key" type="button" data-pin-key="8">8</button>
+            <button class="pin-key" type="button" data-pin-key="9">9</button>
+            <button class="pin-key ghost" type="button" id="pinClearButton">지움</button>
+            <button class="pin-key" type="button" data-pin-key="0">0</button>
+            <button class="pin-key primary" type="submit">확인</button>
+          </div>
         </form>
         <p class="lock-error" id="pinError" hidden>PIN이 맞지 않아요.</p>
       </div>
