@@ -159,6 +159,7 @@ textarea {
 
 .label,
 .subcopy,
+.period-copy,
 .quick-card p,
 .ghost-button,
 .helper-text,
@@ -180,6 +181,13 @@ textarea {
   margin-top: 10px;
   color: rgba(255, 255, 255, 0.84);
   font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+.period-copy {
+  margin-top: 6px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.74rem;
   white-space: nowrap;
 }
 

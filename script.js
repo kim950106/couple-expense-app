@@ -7,29 +7,7 @@ const DEFAULT_GITHUB_SETTINGS = {
   path: "data/expenses.json",
 };
 const MONTHLY_LIMIT = 500000;
-
-const sampleExpenses = [
-  {
-    id: crypto.randomUUID(),
-    date: "2026-05-05",
-    merchant: "스타벅스 성수",
-    amount: 6100,
-    person: "지은",
-    note: "문자 저장",
-    rawText: "05/05 14:33 스타벅스 성수 6,100원 일시불",
-    createdAt: "2026-05-05T14:33:00+09:00",
-  },
-  {
-    id: crypto.randomUUID(),
-    date: "2026-05-05",
-    merchant: "올리브영 강남",
-    amount: 28300,
-    person: "현철",
-    note: "사진 저장",
-    rawText: "05/05 올리브영 강남 28,300원",
-    createdAt: "2026-05-05T16:12:00+09:00",
-  },
-];
+const RESET_DATA_VERSION = "empty-v1";
 
 const state = {
   expenses: loadExpenses(),
@@ -48,6 +26,7 @@ const elements = {
   meTotal: document.querySelector("#meTotal"),
   partnerTotal: document.querySelector("#partnerTotal"),
   heroSummary: document.querySelector("#heroSummary"),
+  periodCopy: document.querySelector("#periodCopy"),
   entrySheet: document.querySelector("#entrySheet"),
   monthSheet: document.querySelector("#monthSheet"),
   settingsSheet: document.querySelector("#settingsSheet"),
@@ -105,14 +84,20 @@ function bindEvents() {
 }
 
 function loadExpenses() {
+  if (localStorage.getItem(`${STORAGE_KEY}-version`) !== RESET_DATA_VERSION) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify([]));
+    localStorage.setItem(`${STORAGE_KEY}-version`, RESET_DATA_VERSION);
+    return [];
+  }
+
   const saved = localStorage.getItem(STORAGE_KEY);
-  if (!saved) return sampleExpenses;
+  if (!saved) return [];
 
   try {
     const parsed = JSON.parse(saved);
-    return Array.isArray(parsed) && parsed.length ? parsed : sampleExpenses;
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
-    return sampleExpenses;
+    return [];
   }
 }
 
@@ -129,6 +114,7 @@ function render() {
 function renderHeader() {
   const now = new Date();
   elements.monthLabel.textContent = `${now.getMonth() + 1}월`;
+  elements.periodCopy.textContent = formatCurrentMonthPeriod(now);
 }
 
 function renderTotals() {
@@ -693,6 +679,21 @@ function formatMonthLabel(monthKey) {
 function formatDayLabel(dateString) {
   const [, month, day] = dateString.split("-");
   return `${Number(month)}/${Number(day)}`;
+}
+
+function formatCurrentMonthPeriod(date) {
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  const start = new Date(year, month, 1);
+  const end = new Date(year, month + 1, 0);
+  return `${formatDateDot(start)} - ${formatDateDot(end)}`;
+}
+
+function formatDateDot(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}.${month}.${day}`;
 }
 
 function escapeHtml(value) {
