@@ -379,6 +379,12 @@ textarea {
   font-weight: 700;
 }
 
+.undo-button {
+  padding: 10px 12px;
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
 .ghost-button,
 .secondary-button,
 .inline-button {

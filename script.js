@@ -94,6 +94,7 @@ function bindEvents() {
   document.querySelector("#ocrButton").addEventListener("click", handleOcr);
   document.querySelector("#saveEntryButton").addEventListener("click", saveEntry);
   document.querySelector("#resetFormButton").addEventListener("click", resetEntryForm);
+  document.querySelector("#undoLastSaveButton").addEventListener("click", undoLastSave);
   document.querySelector("#saveGithubButton").addEventListener("click", pushToGitHub);
   document.querySelector("#loadGithubButton").addEventListener("click", loadFromGitHub);
 
@@ -361,6 +362,18 @@ function saveEntry() {
   render();
   closeSheet("entrySheet");
   resetEntryForm();
+}
+
+function undoLastSave() {
+  if (!state.expenses.length) {
+    alert("취소할 저장 내역이 없어요.");
+    return;
+  }
+
+  state.expenses = state.expenses.slice(1);
+  persistExpenses();
+  render();
+  alert("최근 저장 1건을 취소했어요. GitHub에 저장한 내용이면 다시 저장해야 반영돼요.");
 }
 
 function renderMonthList() {
