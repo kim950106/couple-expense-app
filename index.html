@@ -68,7 +68,8 @@
             <span>현철 <b id="partnerTotal">₩0</b></span>
           </div>
           <div class="hero-actions">
-            <button class="hero-link" id="openMonthSheetButton" type="button">월별 내역</button>
+            <button class="hero-link" id="openMonthListButton" type="button">월별 리스트</button>
+            <button class="hero-link" id="openMonthCalendarButton" type="button">월별 달력</button>
             <button class="hero-link ghost" id="refreshNowButton" type="button">새로고침</button>
           </div>
           <p class="sync-copy" id="syncCopy">수동 새로고침 가능</p>
@@ -275,6 +276,23 @@
           </div>
           <div class="month-list" id="monthList"></div>
           <div class="month-calendar" id="monthCalendar" hidden></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="sheet-backdrop" id="dayDetailSheet" hidden>
+      <div class="sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-head">
+          <div>
+            <p class="eyebrow">일자 내역</p>
+            <h3 id="dayDetailTitle">상세 내역</h3>
+            <p class="sheet-copy" id="dayDetailSummary">합계와 사용 내역</p>
+          </div>
+          <button class="icon-button small" data-close-sheet="dayDetailSheet" aria-label="닫기">×</button>
+        </div>
+        <div class="sheet-body">
+          <div class="day-detail-list" id="dayDetailList"></div>
         </div>
       </div>
     </section>

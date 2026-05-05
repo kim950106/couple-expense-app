@@ -45,6 +45,7 @@ const elements = {
   settingsAccessSheet: document.querySelector("#settingsAccessSheet"),
   settingsSheet: document.querySelector("#settingsSheet"),
   monthSheet: document.querySelector("#monthSheet"),
+  dayDetailSheet: document.querySelector("#dayDetailSheet"),
   monthListViewButton: document.querySelector("#monthListViewButton"),
   monthCalendarViewButton: document.querySelector("#monthCalendarViewButton"),
   settingsAccessInput: document.querySelector("#settingsAccessInput"),
@@ -72,6 +73,9 @@ const elements = {
   syncPassphrase: document.querySelector("#syncPassphrase"),
   monthList: document.querySelector("#monthList"),
   monthCalendar: document.querySelector("#monthCalendar"),
+  dayDetailTitle: document.querySelector("#dayDetailTitle"),
+  dayDetailSummary: document.querySelector("#dayDetailSummary"),
+  dayDetailList: document.querySelector("#dayDetailList"),
   clearGithubTokenButton: document.querySelector("#clearGithubTokenButton"),
   refreshNowButton: document.querySelector("#refreshNowButton"),
 };
@@ -91,7 +95,8 @@ function bindEvents() {
   document.querySelector("#openImageButton").addEventListener("click", () => openEntrySheet("image"));
   document.querySelector("#openManualButton").addEventListener("click", () => openEntrySheet("manual"));
   document.querySelector("#openAddButton").addEventListener("click", () => openEntrySheet("manual"));
-  document.querySelector("#openMonthSheetButton").addEventListener("click", openMonthSheet);
+  document.querySelector("#openMonthListButton").addEventListener("click", () => openMonthSheet("list"));
+  document.querySelector("#openMonthCalendarButton").addEventListener("click", () => openMonthSheet("calendar"));
   elements.monthListViewButton.addEventListener("click", () => setMonthViewMode("list"));
   elements.monthCalendarViewButton.addEventListener("click", () => setMonthViewMode("calendar"));
   elements.refreshNowButton.addEventListener("click", refreshNow);
@@ -111,12 +116,14 @@ function bindEvents() {
   document.querySelector("#loadGithubButton").addEventListener("click", loadFromGitHub);
   elements.clearGithubTokenButton.addEventListener("click", clearGithubToken);
   elements.monthList.addEventListener("click", handleMonthListClick);
+  elements.monthCalendar.addEventListener("click", handleMonthCalendarClick);
+  elements.dayDetailList.addEventListener("click", handleMonthListClick);
 
   document.querySelectorAll("[data-close-sheet]").forEach((button) => {
     button.addEventListener("click", () => closeSheet(button.dataset.closeSheet));
   });
 
-  [elements.entrySheet, elements.settingsAccessSheet, elements.settingsSheet, elements.monthSheet].forEach((sheet) => {
+  [elements.entrySheet, elements.settingsAccessSheet, elements.settingsSheet, elements.monthSheet, elements.dayDetailSheet].forEach((sheet) => {
     sheet.addEventListener("click", (event) => {
       if (event.target === sheet) closeSheet(sheet.id);
     });
@@ -291,7 +298,8 @@ function getEntrySheetConfig(mode) {
   };
 }
 
-function openMonthSheet() {
+function openMonthSheet(mode = state.monthViewMode) {
+  state.monthViewMode = mode;
   renderMonthSheetContent();
   elements.monthSheet.hidden = false;
 }
@@ -478,14 +486,12 @@ function renderMonthCalendar() {
     const dateKey = `${monthKey}-${String(day).padStart(2, "0")}`;
     const items = byDate[dateKey] || [];
     const total = items.reduce((sum, item) => sum + item.amount, 0);
-    const topLine = items.slice(0, 2).map((item) => escapeHtml(item.merchant)).join(" · ");
 
     cells.push(`
-      <div class="calendar-cell${items.length ? " filled" : ""}">
+      <button class="calendar-cell${items.length ? " filled" : ""}" type="button" ${items.length ? `data-calendar-date="${dateKey}"` : "disabled"}>
         <div class="calendar-day">${day}</div>
         <div class="calendar-sum">${items.length ? formatCompactCurrency(total) : ""}</div>
-        <div class="calendar-note">${topLine}</div>
-      </div>
+      </button>
     `);
   }
 
@@ -505,6 +511,53 @@ function renderMonthCalendar() {
       </div>
     </article>
   `;
+}
+
+function handleMonthCalendarClick(event) {
+  const target = event.target.closest("[data-calendar-date]");
+  if (!target) return;
+
+  openDayDetailSheet(target.dataset.calendarDate);
+}
+
+function openDayDetailSheet(dateKey) {
+  const items = state.expenses
+    .filter((item) => item.date === dateKey)
+    .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+
+  const total = items.reduce((sum, item) => sum + item.amount, 0);
+  elements.dayDetailTitle.textContent = formatDateLabel(dateKey);
+  elements.dayDetailSummary.textContent = `${currency.format(total)} · ${items.length}건`;
+
+  if (!items.length) {
+    elements.dayDetailList.innerHTML = `
+      <article class="month-card">
+        <div class="month-head">
+          <strong class="month-title">내역 없음</strong>
+          <strong class="month-total">${currency.format(0)}</strong>
+        </div>
+      </article>
+    `;
+  } else {
+    elements.dayDetailList.innerHTML = items
+      .map(
+        (item) => `
+          <article class="day-detail-item">
+            <div>
+              <div class="month-store">${escapeHtml(item.merchant)}</div>
+              <div class="month-meta">${escapeHtml(item.person)}${item.note ? ` · ${escapeHtml(item.note)}` : ""}</div>
+            </div>
+            <div class="day-detail-side">
+              <div class="month-total">${currency.format(item.amount)}</div>
+              <button class="month-cancel" type="button" data-expense-id="${escapeHtml(item.id)}">취소</button>
+            </div>
+          </article>
+        `
+      )
+      .join("");
+  }
+
+  elements.dayDetailSheet.hidden = false;
 }
 
 function hydrateSettings() {
@@ -543,6 +596,9 @@ function removeExpenseById(expenseId) {
   state.expenses = state.expenses.filter((item) => item.id !== expenseId);
   persistExpenses();
   render();
+  if (!elements.dayDetailSheet.hidden && target?.date) {
+    openDayDetailSheet(target.date);
+  }
   alert("내역을 취소했어요. GitHub에 저장한 내용이면 다시 저장해야 반영돼요.");
 }
 
@@ -701,6 +757,11 @@ function formatSyncTime(date) {
   const hours = String(date.getHours()).padStart(2, "0");
   const minutes = String(date.getMinutes()).padStart(2, "0");
   return `${hours}:${minutes}`;
+}
+
+function formatDateLabel(dateString) {
+  const [year, month, day] = dateString.split("-");
+  return `${year}.${month}.${day}`;
 }
 
 function formatCompactCurrency(value) {

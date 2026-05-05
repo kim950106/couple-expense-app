@@ -319,6 +319,7 @@ textarea {
   display: flex;
   gap: 8px;
   margin-top: 16px;
+  flex-wrap: wrap;
 }
 
 .hero-actions .hero-link {
@@ -509,6 +510,11 @@ textarea {
   gap: 12px;
 }
 
+.day-detail-list {
+  display: grid;
+  gap: 10px;
+}
+
 .month-card {
   padding: 16px;
   border-radius: var(--radius-md);
@@ -588,6 +594,7 @@ textarea {
   display: grid;
   align-content: start;
   gap: 4px;
+  text-align: left;
 }
 
 .calendar-cell.filled {
@@ -596,6 +603,10 @@ textarea {
 
 .calendar-cell.empty {
   background: transparent;
+}
+
+.calendar-cell:disabled {
+  cursor: default;
 }
 
 .calendar-day {
@@ -610,18 +621,24 @@ textarea {
   white-space: nowrap;
 }
 
-.calendar-note {
-  font-size: 0.68rem;
-  line-height: 1.25;
-  color: var(--muted);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  word-break: break-all;
+.month-item-side {
+  display: grid;
+  justify-items: end;
+  gap: 6px;
 }
 
-.month-item-side {
+.day-detail-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  background: var(--surface-strong);
+  border: 1px solid var(--line);
+}
+
+.day-detail-side {
   display: grid;
   justify-items: end;
   gap: 6px;
@@ -690,9 +707,5 @@ textarea {
   .calendar-cell {
     min-height: 68px;
     padding: 7px 5px;
-  }
-
-  .calendar-note {
-    font-size: 0.64rem;
   }
 }
