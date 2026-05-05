@@ -458,6 +458,11 @@ function parseExpenseMessage(rawText) {
     .map((line) => line.trim())
     .filter(Boolean);
 
+  const samsungParsed = parseSamsungCardMessage(lines, text);
+  if (samsungParsed) {
+    return samsungParsed;
+  }
+
   const amountMatch = text.match(/(\d{1,3}(?:,\d{3})+|\d+)\s*원/);
   const amount = amountMatch ? Number(amountMatch[1].replaceAll(",", "")) : "";
 
@@ -467,7 +472,7 @@ function parseExpenseMessage(rawText) {
     parseDate(text, /(\d{1,2})월\s*(\d{1,2})일/) ||
     new Date().toISOString().slice(0, 10);
 
-  const person = /현철/i.test(text) ? "현철" : "지은";
+  const person = detectPerson(text);
   const merchant = extractMerchant(lines, text, amountMatch?.[0]);
 
   return {
@@ -476,6 +481,30 @@ function parseExpenseMessage(rawText) {
     merchant,
     amount,
     note: /일시불/.test(text) ? "일시불" : "",
+  };
+}
+
+function parseSamsungCardMessage(lines, text) {
+  if (!/삼성\d{4}승인/.test(text)) return null;
+
+  const ownerLine = lines.find((line) => /삼성\d{4}승인/.test(line)) || "";
+  const amountLine = lines.find((line) => /원/.test(line)) || "";
+  const merchantLine = lines.find((line) => /\d{1,2}\/\d{1,2}\s+\d{1,2}:\d{2}/.test(line)) || "";
+
+  const amountMatch = amountLine.match(/(\d{1,3}(?:,\d{3})+|\d+)\s*원/);
+  const amount = amountMatch ? Number(amountMatch[1].replaceAll(",", "")) : "";
+
+  const date = parseDate(merchantLine || text, /(\d{1,2})[\/.-]\s*(\d{1,2})/) || new Date().toISOString().slice(0, 10);
+  const merchant = merchantLine
+    .replace(/^\d{1,2}\/\d{1,2}\s+\d{1,2}:\d{2}\s*/, "")
+    .trim() || "가맹점 미확인";
+
+  return {
+    person: detectPerson(ownerLine || text),
+    date,
+    merchant,
+    amount,
+    note: /일시불/.test(amountLine) ? "일시불" : "",
   };
 }
 
@@ -538,6 +567,12 @@ function extractMerchant(lines, text, amountToken) {
     .trim();
 
   return fallback || "가맹점 미확인";
+}
+
+function detectPerson(text) {
+  if (/현철|김\*?철|[가-힣]\*철/.test(text)) return "현철";
+  if (/지은|이\*?은|[가-힣]\*은/.test(text)) return "지은";
+  return "지은";
 }
 
 function isCurrentMonth(dateString) {
