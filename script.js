@@ -78,6 +78,7 @@ const elements = {
   dayDetailList: document.querySelector("#dayDetailList"),
   clearGithubTokenButton: document.querySelector("#clearGithubTokenButton"),
   refreshNowButton: document.querySelector("#refreshNowButton"),
+  pushNowButton: document.querySelector("#pushNowButton"),
 };
 
 bindEvents();
@@ -97,6 +98,7 @@ function bindEvents() {
   document.querySelector("#openAddButton").addEventListener("click", () => openEntrySheet("manual"));
   document.querySelector("#openMonthListButton").addEventListener("click", () => openMonthSheet("list"));
   document.querySelector("#openMonthCalendarButton").addEventListener("click", () => openMonthSheet("calendar"));
+  elements.pushNowButton.addEventListener("click", pushToGitHub);
   elements.monthListViewButton.addEventListener("click", () => setMonthViewMode("list"));
   elements.monthCalendarViewButton.addEventListener("click", () => setMonthViewMode("calendar"));
   elements.refreshNowButton.addEventListener("click", refreshNow);
