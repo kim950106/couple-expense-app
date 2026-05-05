@@ -365,12 +365,10 @@ function resetEntryForm() {
   elements.amountInput.value = "";
   elements.noteInput.value = "";
   setDefaultDate();
-  elements.scheduleStartInput.value = new Date().toISOString().slice(0, 10);
-  elements.scheduleEndInput.value = new Date().toISOString().slice(0, 10);
 }
 
 function setDefaultDate() {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayLocal();
   elements.dateInput.value = today;
   elements.scheduleStartInput.value = today;
   elements.scheduleEndInput.value = today;
@@ -395,7 +393,7 @@ function saveEntry() {
   let entry;
 
   if (state.currentMode === "schedule") {
-    const startDate = elements.scheduleStartInput.value || new Date().toISOString().slice(0, 10);
+    const startDate = elements.scheduleStartInput.value || todayLocal();
     const endDate = elements.scheduleEndInput.value || startDate;
     if (!merchant) {
       alert("장소는 꼭 입력해 주세요.");
@@ -425,7 +423,7 @@ function saveEntry() {
       id: crypto.randomUUID(),
       type: "expense",
       person: elements.personInput.value,
-      date: elements.dateInput.value || new Date().toISOString().slice(0, 10),
+      date: elements.dateInput.value || todayLocal(),
       merchant,
       amount,
       note: elements.noteInput.value.trim(),
@@ -889,13 +887,24 @@ function isScheduleInMonth(item, year, monthIndex) {
 
 function getDatesInRange(startDate, endDate) {
   const dates = [];
-  const cursor = new Date(`${startDate}T00:00:00`);
-  const end = new Date(`${endDate}T00:00:00`);
+  const cursor = new Date(`${startDate}T12:00:00`);
+  const end = new Date(`${endDate}T12:00:00`);
   while (cursor <= end) {
-    dates.push(cursor.toISOString().slice(0, 10));
+    dates.push(formatLocalDate(cursor));
     cursor.setDate(cursor.getDate() + 1);
   }
   return dates;
+}
+
+function formatLocalDate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function todayLocal() {
+  return formatLocalDate(new Date());
 }
 
 function formatCompactCurrency(value) {
@@ -1017,7 +1026,7 @@ function parseExpenseMessage(rawText) {
     parseDate(text, /(\d{4})[.\-/년 ]\s*(\d{1,2})[.\-/월 ]\s*(\d{1,2})/) ||
     parseDate(text, /(\d{1,2})[\/.-]\s*(\d{1,2})/) ||
     parseDate(text, /(\d{1,2})월\s*(\d{1,2})일/) ||
-    new Date().toISOString().slice(0, 10);
+    todayLocal();
 
   const person = detectPerson(text);
   const merchant = extractMerchant(lines, text, amountMatch?.[0]);
@@ -1041,7 +1050,7 @@ function parseSamsungCardMessage(lines, text) {
   const amountMatch = amountLine.match(/(\d{1,3}(?:,\d{3})+|\d+)\s*원/);
   const amount = amountMatch ? Number(amountMatch[1].replaceAll(",", "")) : "";
 
-  const date = parseDate(merchantLine || text, /(\d{1,2})[\/.-]\s*(\d{1,2})/) || new Date().toISOString().slice(0, 10);
+  const date = parseDate(merchantLine || text, /(\d{1,2})[\/.-]\s*(\d{1,2})/) || todayLocal();
   const merchant = merchantLine.replace(/^\d{1,2}\/\d{1,2}\s+\d{1,2}:\d{2}\s*/, "").trim() || "가맹점 미확인";
 
   return {
