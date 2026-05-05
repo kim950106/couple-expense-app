@@ -13,7 +13,20 @@
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <div class="app-shell">
+    <section class="lock-screen" id="lockScreen">
+      <div class="lock-card">
+        <p class="eyebrow">입장</p>
+        <h1>지은 현철</h1>
+        <p class="lock-copy">PIN 4자리를 입력해 주세요.</p>
+        <form class="lock-form" id="pinForm">
+          <input id="pinInput" type="password" inputmode="numeric" maxlength="4" placeholder="0311" />
+          <button class="primary-button" type="submit">들어가기</button>
+        </form>
+        <p class="lock-error" id="pinError" hidden>PIN이 맞지 않아요.</p>
+      </div>
+    </section>
+
+    <div class="app-shell" id="appShell" hidden>
       <header class="topbar">
         <div>
           <p class="eyebrow" id="monthLabel">이번달</p>

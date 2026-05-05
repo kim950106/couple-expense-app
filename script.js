@@ -8,6 +8,7 @@ const DEFAULT_GITHUB_SETTINGS = {
 };
 const MONTHLY_LIMIT = 500000;
 const RESET_DATA_VERSION = "empty-v1";
+const APP_PIN = "0311";
 
 const state = {
   expenses: loadExpenses(),
@@ -21,6 +22,11 @@ const currency = new Intl.NumberFormat("ko-KR", {
 });
 
 const elements = {
+  lockScreen: document.querySelector("#lockScreen"),
+  appShell: document.querySelector("#appShell"),
+  pinForm: document.querySelector("#pinForm"),
+  pinInput: document.querySelector("#pinInput"),
+  pinError: document.querySelector("#pinError"),
   monthLabel: document.querySelector("#monthLabel"),
   monthlyTotal: document.querySelector("#monthlyTotal"),
   meTotal: document.querySelector("#meTotal"),
@@ -59,6 +65,7 @@ setDefaultDate();
 render();
 
 function bindEvents() {
+  elements.pinForm.addEventListener("submit", handlePinSubmit);
   document.querySelector("#openPasteButton").addEventListener("click", () => openEntrySheet("paste"));
   document.querySelector("#openImageButton").addEventListener("click", () => openEntrySheet("image"));
   document.querySelector("#openManualButton").addEventListener("click", () => openEntrySheet("manual"));
@@ -81,6 +88,20 @@ function bindEvents() {
       if (event.target === sheet) closeSheet(sheet.id);
     });
   });
+}
+
+function handlePinSubmit(event) {
+  event.preventDefault();
+  const value = elements.pinInput.value.trim();
+  if (value !== APP_PIN) {
+    elements.pinError.hidden = false;
+    elements.pinInput.value = "";
+    return;
+  }
+
+  elements.pinError.hidden = true;
+  elements.lockScreen.hidden = true;
+  elements.appShell.hidden = false;
 }
 
 function loadExpenses() {
