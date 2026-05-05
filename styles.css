@@ -315,6 +315,27 @@ textarea {
   font-weight: 700;
 }
 
+.hero-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.hero-actions .hero-link {
+  margin-top: 0;
+}
+
+.hero-link.ghost {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.sync-copy {
+  margin: 8px 0 0;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
 .quick-actions {
   display: grid;
   grid-template-columns: 1fr;

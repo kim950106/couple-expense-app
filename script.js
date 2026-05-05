@@ -1,6 +1,7 @@
 const STORAGE_KEY = "couple-expenses-v1";
 const SETTINGS_KEY = "couple-expenses-github-settings-v1";
 const SESSION_TOKEN_KEY = "couple-expenses-github-token-v1";
+const SESSION_PASSPHRASE_KEY = "couple-expenses-passphrase-v1";
 const DEFAULT_GITHUB_SETTINGS = {
   owner: "kim950106",
   repo: "couple-expense-data",
@@ -10,11 +11,13 @@ const MONTHLY_LIMIT = 500000;
 const RESET_DATA_VERSION = "empty-v1";
 const APP_PIN = "0311";
 const SETTINGS_ACCESS_KEY = "K7m2Qx9Vn4Lp8Rz3";
+const AUTO_REFRESH_MS = 60_000;
 
 const state = {
   expenses: loadExpenses(),
   currentMode: "paste",
   pinValue: "",
+  autoRefreshTimer: null,
 };
 
 const currency = new Intl.NumberFormat("ko-KR", {
@@ -36,6 +39,7 @@ const elements = {
   partnerTotal: document.querySelector("#partnerTotal"),
   heroSummary: document.querySelector("#heroSummary"),
   periodCopy: document.querySelector("#periodCopy"),
+  syncCopy: document.querySelector("#syncCopy"),
   entrySheet: document.querySelector("#entrySheet"),
   settingsAccessSheet: document.querySelector("#settingsAccessSheet"),
   settingsSheet: document.querySelector("#settingsSheet"),
@@ -65,6 +69,7 @@ const elements = {
   syncPassphrase: document.querySelector("#syncPassphrase"),
   monthList: document.querySelector("#monthList"),
   clearGithubTokenButton: document.querySelector("#clearGithubTokenButton"),
+  refreshNowButton: document.querySelector("#refreshNowButton"),
 };
 
 bindEvents();
@@ -83,6 +88,7 @@ function bindEvents() {
   document.querySelector("#openManualButton").addEventListener("click", () => openEntrySheet("manual"));
   document.querySelector("#openAddButton").addEventListener("click", () => openEntrySheet("manual"));
   document.querySelector("#openMonthSheetButton").addEventListener("click", openMonthSheet);
+  elements.refreshNowButton.addEventListener("click", refreshNow);
   document.querySelector("#openSettingsButton").addEventListener("click", openSettingsAccessSheet);
   elements.openSettingsConfirmButton.addEventListener("click", handleSettingsAccess);
   elements.settingsAccessInput.addEventListener("keydown", (event) => {
@@ -122,6 +128,8 @@ function handlePinSubmit(event) {
   elements.pinError.hidden = true;
   elements.lockScreen.hidden = true;
   elements.appShell.hidden = false;
+  startAutoRefresh();
+  void loadFromGitHub({ silent: true, closeOnSuccess: false, updateStatus: true });
 }
 
 function handlePinKey(value) {
@@ -195,6 +203,7 @@ function render() {
   renderHeader();
   renderTotals();
   renderMonthList();
+  renderSyncState();
 }
 
 function renderHeader() {
@@ -427,13 +436,14 @@ function hydrateSettings() {
   elements.githubRepo.value = settings.repo || "";
   elements.githubPath.value = settings.path || "data/expenses.json";
   elements.githubToken.value = sessionStorage.getItem(SESSION_TOKEN_KEY) || "";
-  elements.syncPassphrase.value = "";
+  elements.syncPassphrase.value = sessionStorage.getItem(SESSION_PASSPHRASE_KEY) || "";
 }
 
 function clearGithubToken() {
   sessionStorage.removeItem(SESSION_TOKEN_KEY);
   elements.githubToken.value = "";
   alert("토큰을 지웠어요.");
+  renderSyncState();
 }
 
 function handleMonthListClick(event) {
@@ -482,16 +492,25 @@ function saveSettings() {
   if (token) {
     sessionStorage.setItem(SESSION_TOKEN_KEY, token);
   }
+  const passphrase = elements.syncPassphrase.value.trim();
+  if (passphrase) {
+    sessionStorage.setItem(SESSION_PASSPHRASE_KEY, passphrase);
+  }
+  renderSyncState();
   return settings;
 }
 
-async function loadFromGitHub() {
+async function loadFromGitHub(options = {}) {
+  const { silent = false, closeOnSuccess = true, updateStatus = false } = options;
   const settings = saveSettings();
   const token = sessionStorage.getItem(SESSION_TOKEN_KEY) || elements.githubToken.value.trim();
-  const passphrase = elements.syncPassphrase.value;
+  const passphrase = sessionStorage.getItem(SESSION_PASSPHRASE_KEY) || elements.syncPassphrase.value.trim();
   if (!isGitHubConfigured(settings, token)) {
-    alert("Owner, Repo, Path, Token을 모두 입력해 주세요.");
-    return;
+    if (!silent) alert("Owner, Repo, Path, Token을 모두 입력해 주세요.");
+    if (updateStatus) {
+      elements.syncCopy.textContent = "토큰 입력 후 새로고침";
+    }
+    return false;
   }
 
   try {
@@ -512,18 +531,26 @@ async function loadFromGitHub() {
     state.expenses = parsed;
     persistExpenses();
     render();
-    closeSheet("settingsSheet");
-    alert("GitHub에서 내역을 불러왔어요.");
+    if (closeOnSuccess) closeSheet("settingsSheet");
+    if (updateStatus) {
+      elements.syncCopy.textContent = `${formatSyncTime(new Date())} 새로고침`;
+    }
+    if (!silent) alert("GitHub에서 내역을 불러왔어요.");
+    return true;
   } catch (error) {
     console.error(error);
-    alert("GitHub에서 불러오지 못했어요. 저장소와 토큰 권한을 확인해 주세요.");
+    if (updateStatus) {
+      elements.syncCopy.textContent = "새로고침 실패";
+    }
+    if (!silent) alert("GitHub에서 불러오지 못했어요. 저장소와 토큰 권한을 확인해 주세요.");
+    return false;
   }
 }
 
 async function pushToGitHub() {
   const settings = saveSettings();
   const token = sessionStorage.getItem(SESSION_TOKEN_KEY) || elements.githubToken.value.trim();
-  const passphrase = elements.syncPassphrase.value;
+  const passphrase = sessionStorage.getItem(SESSION_PASSPHRASE_KEY) || elements.syncPassphrase.value.trim();
   if (!isGitHubConfigured(settings, token)) {
     alert("Owner, Repo, Path, Token을 모두 입력해 주세요.");
     return;
@@ -562,11 +589,41 @@ async function pushToGitHub() {
     }
 
     closeSheet("settingsSheet");
+    elements.syncCopy.textContent = `${formatSyncTime(new Date())} 저장됨`;
     alert("GitHub private repo로 저장했어요.");
   } catch (error) {
     console.error(error);
     alert("GitHub 저장에 실패했어요. repo 이름, path, token 권한을 다시 확인해 주세요.");
   }
+}
+
+function refreshNow() {
+  void loadFromGitHub({ silent: false, closeOnSuccess: false, updateStatus: true });
+}
+
+function startAutoRefresh() {
+  if (state.autoRefreshTimer) return;
+
+  state.autoRefreshTimer = window.setInterval(() => {
+    if (elements.appShell.hidden) return;
+    const settings = loadSettings();
+    const token = sessionStorage.getItem(SESSION_TOKEN_KEY);
+    const passphrase = sessionStorage.getItem(SESSION_PASSPHRASE_KEY);
+    if (!isGitHubConfigured(settings, token) || !passphrase) return;
+    void loadFromGitHub({ silent: true, closeOnSuccess: false, updateStatus: true });
+  }, AUTO_REFRESH_MS);
+}
+
+function renderSyncState() {
+  const token = sessionStorage.getItem(SESSION_TOKEN_KEY);
+  const passphrase = sessionStorage.getItem(SESSION_PASSPHRASE_KEY);
+  elements.syncCopy.textContent = token && passphrase ? "1분마다 자동 새로고침" : "수동 새로고침 가능";
+}
+
+function formatSyncTime(date) {
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  return `${hours}:${minutes}`;
 }
 
 function githubHeaders(token) {
