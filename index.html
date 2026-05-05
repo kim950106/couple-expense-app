@@ -76,7 +76,6 @@
               <p class="eyebrow">저장</p>
               <h2>지출 저장</h2>
             </div>
-            <button class="ghost-button undo-button" id="undoLastSaveButton" type="button">저장 취소</button>
           </div>
           <div class="quick-actions">
             <button class="quick-card primary" id="openPasteButton">
@@ -237,6 +236,9 @@
             <input id="githubToken" type="password" placeholder="contents 읽기/쓰기 권한 토큰" />
             <p class="helper-text">토큰은 이 브라우저 세션에만 잠깐 보관하고, 페이지를 닫으면 사라지게 만들었어요.</p>
           </label>
+          <div class="token-row">
+            <button class="ghost-button token-clear-button" id="clearGithubTokenButton" type="button">토큰 지우기</button>
+          </div>
           <label class="field-block">
             <span>암호화 비밀번호</span>
             <input id="syncPassphrase" type="password" placeholder="두 분만 아는 비밀번호" />

@@ -64,6 +64,7 @@ const elements = {
   githubToken: document.querySelector("#githubToken"),
   syncPassphrase: document.querySelector("#syncPassphrase"),
   monthList: document.querySelector("#monthList"),
+  clearGithubTokenButton: document.querySelector("#clearGithubTokenButton"),
 };
 
 bindEvents();
@@ -94,9 +95,10 @@ function bindEvents() {
   document.querySelector("#ocrButton").addEventListener("click", handleOcr);
   document.querySelector("#saveEntryButton").addEventListener("click", saveEntry);
   document.querySelector("#resetFormButton").addEventListener("click", resetEntryForm);
-  document.querySelector("#undoLastSaveButton").addEventListener("click", undoLastSave);
   document.querySelector("#saveGithubButton").addEventListener("click", pushToGitHub);
   document.querySelector("#loadGithubButton").addEventListener("click", loadFromGitHub);
+  elements.clearGithubTokenButton.addEventListener("click", clearGithubToken);
+  elements.monthList.addEventListener("click", handleMonthListClick);
 
   document.querySelectorAll("[data-close-sheet]").forEach((button) => {
     button.addEventListener("click", () => closeSheet(button.dataset.closeSheet));
@@ -364,18 +366,6 @@ function saveEntry() {
   resetEntryForm();
 }
 
-function undoLastSave() {
-  if (!state.expenses.length) {
-    alert("취소할 저장 내역이 없어요.");
-    return;
-  }
-
-  state.expenses = state.expenses.slice(1);
-  persistExpenses();
-  render();
-  alert("최근 저장 1건을 취소했어요. GitHub에 저장한 내용이면 다시 저장해야 반영돼요.");
-}
-
 function renderMonthList() {
   const grouped = state.expenses.reduce((acc, item) => {
     const key = item.date.slice(0, 7);
@@ -417,9 +407,10 @@ function renderMonthList() {
                 <div class="month-store">${escapeHtml(item.merchant)}</div>
                 <div class="month-meta">${escapeHtml(item.person)} · ${formatDayLabel(item.date)}</div>
               </div>
-              <div>
+              <div class="month-item-side">
                 <div class="month-total">${currency.format(item.amount)}</div>
                 <div class="month-amount">${escapeHtml(item.note || "")}</div>
+                <button class="month-cancel" type="button" data-expense-id="${escapeHtml(item.id)}">취소</button>
               </div>
             </div>
           `
@@ -437,6 +428,35 @@ function hydrateSettings() {
   elements.githubPath.value = settings.path || "data/expenses.json";
   elements.githubToken.value = sessionStorage.getItem(SESSION_TOKEN_KEY) || "";
   elements.syncPassphrase.value = "";
+}
+
+function clearGithubToken() {
+  sessionStorage.removeItem(SESSION_TOKEN_KEY);
+  elements.githubToken.value = "";
+  alert("토큰을 지웠어요.");
+}
+
+function handleMonthListClick(event) {
+  const button = event.target.closest("[data-expense-id]");
+  if (!button) return;
+
+  removeExpenseById(button.dataset.expenseId);
+}
+
+function removeExpenseById(expenseId) {
+  const target = state.expenses.find((item) => item.id === expenseId);
+  if (!target) {
+    alert("이미 지워진 내역이에요.");
+    return;
+  }
+
+  const confirmed = window.confirm(`${target.merchant} ${currency.format(target.amount)} 내역을 취소할까요?`);
+  if (!confirmed) return;
+
+  state.expenses = state.expenses.filter((item) => item.id !== expenseId);
+  persistExpenses();
+  render();
+  alert("내역을 취소했어요. GitHub에 저장한 내용이면 다시 저장해야 반영돼요.");
 }
 
 function loadSettings() {

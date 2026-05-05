@@ -379,12 +379,6 @@ textarea {
   font-weight: 700;
 }
 
-.undo-button {
-  padding: 10px 12px;
-  font-size: 0.82rem;
-  white-space: nowrap;
-}
-
 .ghost-button,
 .secondary-button,
 .inline-button {
@@ -506,6 +500,32 @@ textarea {
 .month-amount {
   font-size: 0.82rem;
   color: var(--muted);
+}
+
+.month-item-side {
+  display: grid;
+  justify-items: end;
+  gap: 6px;
+}
+
+.month-cancel,
+.token-clear-button {
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.month-cancel {
+  color: #b42318;
+  background: rgba(254, 228, 226, 0.9);
+}
+
+.token-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: -4px;
 }
 
 .field-block {
