@@ -613,16 +613,16 @@ function openDayDetailSheet(dateKey, kind = "expense") {
         (item) => `
           <article class="day-detail-item">
             <div>
-              <div class="month-store">${escapeHtml(kind === "schedule" ? item.place : item.merchant)}</div>
+              <div class="month-store">${escapeHtml(kind === "schedule" ? `장소 · ${item.place}` : item.merchant)}</div>
               <div class="month-meta">${
                 kind === "schedule"
-                  ? `${escapeHtml(item.person)} · ${formatDateLabel(item.startDate)} - ${formatDateLabel(item.endDate)}${item.note ? ` · ${escapeHtml(item.note)}` : ""}`
+                  ? `${escapeHtml(item.person)} · ${formatDateLabel(item.startDate)} - ${formatDateLabel(item.endDate)}`
                   : `${escapeHtml(item.person)}${item.note ? ` · ${escapeHtml(item.note)}` : ""}`
               }</div>
             </div>
             <div class="day-detail-side">
-              <div class="month-total">${kind === "schedule" ? "일정" : currency.format(item.amount)}</div>
-              <button class="month-cancel" type="button" data-expense-id="${escapeHtml(item.id)}">취소</button>
+              <div class="month-total">${kind === "schedule" ? `메모 · ${escapeHtml(item.note || "-")}` : currency.format(item.amount)}</div>
+              <button class="month-cancel" type="button" data-expense-id="${escapeHtml(item.id)}">${kind === "schedule" ? "삭제" : "취소"}</button>
             </div>
           </article>
         `
@@ -668,7 +668,7 @@ function removeExpenseById(expenseId) {
   const itemLabel = isSchedule(target)
     ? `${target.place} 일정`
     : `${target.merchant} ${currency.format(target.amount)}`;
-  const confirmed = window.confirm(`${itemLabel} 내역을 취소할까요?`);
+  const confirmed = window.confirm(`${itemLabel} ${isSchedule(target) ? "일정을 삭제할까요?" : "내역을 취소할까요?"}`);
   if (!confirmed) return;
 
   state.expenses = state.expenses.filter((item) => item.id !== expenseId);
@@ -677,7 +677,7 @@ function removeExpenseById(expenseId) {
   if (!elements.dayDetailSheet.hidden && state.dayDetailDate) {
     openDayDetailSheet(state.dayDetailDate, state.dayDetailKind);
   }
-  alert("내역을 취소했어요. GitHub에 저장한 내용이면 다시 저장해야 반영돼요.");
+  alert(`${isSchedule(target) ? "일정을 삭제했어요." : "내역을 취소했어요."} GitHub에 저장한 내용이면 다시 저장해야 반영돼요.`);
 }
 
 function loadSettings() {
